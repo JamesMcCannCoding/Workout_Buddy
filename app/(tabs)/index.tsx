@@ -1,78 +1,122 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Button, StyleSheet, TextInput, View, useColorScheme } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+
+// YOUR IP ADDRESS
+const API_URL = "10.0.2.2:3000/users"; //http://localhost:3000/users
+
+interface User {
+  id: number;
+  name: string;
+}
 
 export default function HomeScreen() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [inputText, setInputText] = useState("");
+  const colorScheme = useColorScheme();
+
+  // Function to Fetch Users
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+// Function to define the header title color dynamically
+  const headerTitleStyle = {
+    // If the colorScheme is 'light', color is black. Otherwise, color is white.
+    color: colorScheme === 'light' ? '#000000' : '#FFFFFF',
+  };
+
+  // Function to Add User (POST)
+  const addUser = async () => {
+    if (inputText.trim() === "") return;
+
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: inputText }),
+      });
+
+      // Clear input and reload list
+      setInputText("");
+      fetchUsers(); 
+    } catch (error) {
+      Alert.alert("Error", "Could not add user");
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: '#ffffffff', dark: 'rgba(0, 0, 0, 1)ff' }}
       headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
+          <ThemedText 
+          type="title" 
+          style={[styles.headerTitle, headerTitleStyle]}
+            >
+          Workout Buddy
+          </ThemedText>
+          }>
+      
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+        <ThemedText type="title">MySQL Connector</ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
+      {/* INPUT SECTION */}
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
+        <ThemedText type="subtitle">Add New User:</ThemedText>
+        <TextInput 
+          style={styles.input}
+          placeholder="Enter a name..."
+          placeholderTextColor="#888"
+          value={inputText}
+          onChangeText={setInputText}
+        />
+        <Button title="Save to Database" onPress={addUser} />
+      </ThemedView>
+
+      {/* LIST SECTION */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Database Rows:</ThemedText>
+        
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          <View>
+        {/* Check if users is an array AND if it has content */}
+        {Array.isArray(users) && users.length > 0 ? (
+          users.map((user, index) => (
+            <ThemedView key={index} style={styles.userCard}>
+              <ThemedText type="defaultSemiBold">{user.name}</ThemedText>
+              <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>ID: {user.id}</ThemedText>
+            </ThemedView>
+          ))
+        ) : (
+          <ThemedText style={{ color: 'red' }}>
+            {/* If users is not an array, display this error */}
+            Could not load data. Check Node server console for MySQL error!
+          </ThemedText>
+        )}
+          </View>
+        )}
       </ThemedView>
     </ParallaxScrollView>
   );
@@ -95,4 +139,37 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
+  userCard: {
+    padding: 12,
+    backgroundColor: '#0a7ea4',
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#0a7ea4'
+  },
+  input: {
+    height: 45,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: 'white',
+    marginBottom: 10,
+  },
+  headerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    // Styling for the "Workout Buddy" text
+    fontSize: 40,
+    fontWeight: 'bold',
+    position: 'absolute',
+    left: 20,
+    top: '30%',
+    zIndex: 1
+  }
 });
