@@ -6,7 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 // YOUR IP ADDRESS
-const API_URL = "10.0.2.2:3000/users"; //http://localhost:3000/users
+const API_URL = "http://10.0.2.2:3000/users"; //http://localhost:3000/users
 
 interface User {
   id: number;
