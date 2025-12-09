@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,8 +9,6 @@ import {
   View,
   useColorScheme
 } from 'react-native';
-// ** IMPORT EXPO ROUTER FOR NAVIGATION **
-import { useRouter } from 'expo-router';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -31,6 +30,9 @@ export default function HomeScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const colorScheme = useColorScheme();
+
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [newWorkoutName, setNewWorkoutName] = useState('');
 
   // Function to Fetch Workouts (remains the same)
   const fetchWorkouts = async () => {
@@ -70,6 +72,53 @@ export default function HomeScreen() {
     Alert.alert("Create New Workout", "Opening screen to create a new routine...");
     // **TODO:** Navigate to the Create Workout screen
   };
+
+  const handleSaveNewWorkout = async () => {
+    if (!newWorkoutName.trim()) {
+        Alert.alert("Input Required", "Please enter a name for your new workout routine.");
+        return;
+    }
+    
+    setLoading(true);
+    setIsCreateModalVisible(false); // Close modal right away
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workout_name: newWorkoutName.trim() }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create workout');
+        }
+
+        const newWorkoutData = await response.json();
+        
+        // 1. Refresh the list and reset the state
+        await fetchWorkouts();
+        setNewWorkoutName('');
+        Alert.alert("Success", `Routine '${newWorkoutName.trim()}' created!`);
+        
+        // 2. Navigate immediately to the detail screen for the new workout
+        router.push({
+            pathname: "/workout/[workout_id]",
+            params: { workout_id: newWorkoutData.workout_id },
+        });
+
+    } catch (error) {
+        console.error("Error creating workout:", error);
+        Alert.alert("Error", "Could not create new workout. Please try again.");
+    } finally {
+        setLoading(false);
+    }
+};
+
+// 💡 HANDLER UPDATED to show the modal
+const handleCreateNewWorkout = () => {
+    setNewWorkoutName(''); // Clear input whenever opening
+    setIsCreateModalVisible(true);
+};
 
   useEffect(() => {
     fetchWorkouts();
@@ -132,6 +181,44 @@ export default function HomeScreen() {
           )}
           </View>
         )}
+        {/* --- CREATE WORKOUT MODAL --- */}
+    <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isCreateModalVisible}
+        onRequestClose={() => setIsCreateModalVisible(false)}
+    >
+        <View style={styles.modalOverlay}>
+            <ThemedView style={styles.modalContent}>
+                <ThemedText type="subtitle" style={styles.modalTitle}>Create New Routine</ThemedText>
+                
+                <ThemedText style={styles.modalLabel}>Routine Name:</ThemedText>
+                <TextInput
+                    style={styles.modalInput}
+                    placeholder="e.g., Upper Body Focus, Full Body Blitz"
+                    value={newWorkoutName}
+                    onChangeText={setNewWorkoutName}
+                    maxLength={50}
+                />
+                
+                <View style={styles.modalButtons}>
+                    <TouchableOpacity 
+                        style={[styles.modalBtn, {backgroundColor: '#ccc'}]} 
+                        onPress={() => setIsCreateModalVisible(false)}
+                    >
+                        <ThemedText>Cancel</ThemedText>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        style={[styles.modalBtn, {backgroundColor: '#2a9d8f'}]} 
+                        onPress={handleSaveNewWorkout}
+                    >
+                        <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>Create</ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </ThemedView>
+        </View>
+    </Modal>
       </ThemedView>
     </ParallaxScrollView>
   );
@@ -181,4 +268,46 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
   }
+  // 💡 NEW MODAL STYLES
+modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+},
+modalContent: {
+    width: '90%',
+    padding: 20,
+    borderRadius: 15,
+    elevation: 5,
+    // ThemedView will handle background color
+},
+modalTitle: {
+    marginBottom: 20,
+    textAlign: 'center',
+},
+modalLabel: {
+    fontSize: 16,
+    marginBottom: 5,
+    fontWeight: '600',
+},
+modalInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    fontSize: 16,
+},
+modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+},
+modalBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+},
 });
