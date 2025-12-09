@@ -4,42 +4,39 @@ import {
   Alert,
   Button,
   StyleSheet,
-  TouchableOpacity // Use TouchableOpacity for custom buttons
-  ,
-
-
-  // TextInput, // We don't need the TextInput anymore
+  TouchableOpacity,
   View,
   useColorScheme
 } from 'react-native';
+// ** IMPORT EXPO ROUTER FOR NAVIGATION **
+import { useRouter } from 'expo-router';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-// YOUR IP ADDRESS - Updated to target a /workouts endpoint
+// YOUR IP ADDRESS
 const API_URL = "http://10.0.2.2:3000/workouts"; 
 
 // --- INTERFACE UPDATED FOR WORKOUTS ---
 interface Workout {
-  workout_id: number; // Based on your MySQL schema
-  workout_name: string; // Based on your MySQL schema
-  // You might add more fields later, like last_performed_date
+  workout_id: number; 
+  workout_name: string; 
 }
 
 export default function HomeScreen() {
-  // --- STATE UPDATED FOR WORKOUTS ---
+  // ** INITIALIZE ROUTER **
+  const router = useRouter(); 
+  
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [inputText, setInputText] = useState(""); // Not needed for this view
   const colorScheme = useColorScheme();
 
-  // Function to Fetch Workouts
+  // Function to Fetch Workouts (remains the same)
   const fetchWorkouts = async () => {
     try {
       const response = await fetch(API_URL);
       const data = await response.json();
-      // Ensure the fetched data matches the Workout interface structure
       setWorkouts(data);
     } catch (error) {
       console.error("Error fetching workouts:", error);
@@ -54,14 +51,18 @@ export default function HomeScreen() {
 
   // Function to define the header title color dynamically
   const headerTitleStyle = {
-    // If the colorScheme is 'light', color is black. Otherwise, color is white.
     color: colorScheme === 'light' ? '#000000' : '#FFFFFF',
   };
 
-  // Handler for when a user clicks a saved workout button
+  // ** HANDLER UPDATED to navigate to the detail screen **
   const handleSelectWorkout = (workout: Workout) => {
-    Alert.alert("Workout Selected", `You selected: ${workout.workout_name}`);
-    // **TODO:** Navigate to the Workout Detail/Start Session screen
+    // FIX: Use object syntax for dynamic routes to satisfy TypeScript
+    router.push({
+      // This is the file path: app/workout/[workout_id].tsx
+      pathname: "/workout/[workout_id]",
+      // This passes the workout ID as the dynamic parameter
+      params: { workout_id: workout.workout_id },
+    });
   };
 
   // Handler for the "Create New Workout" button
@@ -95,7 +96,7 @@ export default function HomeScreen() {
         <Button 
           title="➕ Create New Workout" 
           onPress={handleCreateNewWorkout} 
-          color="#2a9d8f" // A nice green/teal color
+          color="#2a9d8f" 
         />
       </ThemedView>
       
@@ -113,6 +114,7 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 key={workout.workout_id} 
                 style={styles.workoutButton}
+                // ** Use the updated handler **
                 onPress={() => handleSelectWorkout(workout)}
               >
                 <ThemedText style={styles.workoutButtonText} type="defaultSemiBold">
@@ -159,10 +161,9 @@ const styles = StyleSheet.create({
     top: '30%',
     zIndex: 1
   },
-  // --- NEW STYLES FOR WORKOUT BUTTONS ---
   workoutButton: {
     padding: 20,
-    backgroundColor: '#0a7ea4', // Primary app color
+    backgroundColor: '#0a7ea4', 
     borderRadius: 12,
     marginBottom: 12,
     shadowColor: '#000',
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   workoutButtonText: {
-    color: '#FFFFFF', // White text for contrast
+    color: '#FFFFFF', 
     fontSize: 20,
     marginBottom: 5,
   },

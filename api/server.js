@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2'); // Using mysql2 for modern features/promises
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -52,6 +53,115 @@ app.get('/workouts', (req, res) => {
         res.json(results);
     });
 });
+// =========================================================================
+// FETCH FULL WORKOUT DETAILS BY ID (MATCHES YOUR DATABASE SCHEMA)
+// =========================================================================
+// =========================================================================
+// FETCH FULL WORKOUT DETAILS BY ID (UPDATED FOR IMAGE_URL)
+// =========================================================================
+app.get('/workouts/:id', (req, res) => {
+    const workoutId = req.params.id;
+
+    const query = `
+        SELECT 
+            w.workout_name,
+            e.exercise_name,
+            e.image_url,  -- <--- NEW: Select the image URL
+            we.default_sets AS sets,
+            we.default_reps AS reps,
+            we.exercise_order
+        FROM Workouts w
+        LEFT JOIN WorkoutExercises we ON w.workout_id = we.workout_id
+        LEFT JOIN Exercises e ON we.exercise_id = e.exercise_id
+        WHERE w.workout_id = ?
+        ORDER BY we.exercise_order ASC;
+    `;
+
+    db.query(query, [workoutId], (err, results) => {
+        if (err) {
+            console.error("Database error (GET /workouts/:id):", err);
+            return res.status(500).json({ error: "Database query failed" });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Workout not found" });
+        }
+
+        const workout_name = results[0].workout_name;
+
+        const exercises = results
+            .filter(row => row.exercise_name !== null)
+            .map(row => ({
+                exercise_name: row.exercise_name,
+                sets: row.sets,
+                reps: row.reps,
+                exercise_order: row.exercise_order,
+                image_url: row.image_url
+            }));
+
+        res.json({
+            workout_name,
+            exercises
+        });
+    });
+});// =========================================================================
+// FETCH FULL WORKOUT DETAILS BY ID
+// =========================================================================
+app.get('/workouts/:id', (req, res) => {
+    const workoutId = req.params.id;
+
+    const query = `
+        SELECT 
+            w.workout_name,
+            e.exercise_name,
+            e.image_url,
+            we.default_sets AS sets,
+            we.default_reps AS reps,
+            we.exercise_order
+        FROM Workouts w
+        LEFT JOIN WorkoutExercises we ON w.workout_id = we.workout_id
+        LEFT JOIN Exercises e ON we.exercise_id = e.exercise_id
+        WHERE w.workout_id = ?
+        ORDER BY we.exercise_order ASC;
+    `;
+
+    db.query(query, [workoutId], (err, results) => {
+        if (err) {
+            console.error("Database error (GET /workouts/:id):", err);
+            return res.status(500).json({ error: "Database query failed" });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Workout not found" });
+        }
+
+        const workout_name = results[0].workout_name;
+
+        const exercises = results
+            .filter(row => row.exercise_name !== null)
+            .map(row => ({
+                exercise_name: row.exercise_name,
+                sets: row.sets,
+                reps: row.reps,
+                exercise_order: row.exercise_order,
+                image_url: row.image_url
+            }));
+
+        res.json({
+            workout_name,
+            exercises
+        });
+    });
+});
+
+// ==========================================================
+// 1. ADD STATIC FILE SERVING FOR IMAGES
+// ==========================================================
+// This maps requests to 'http://10.0.2.2:3000/assets/images/...' 
+// to the 'public/images' folder on your server.
+app.use('/images', express.static(path.join(__dirname, 'public/images'))); 
+// ==========================================================
+
 
 // =========================================================================
 // NEW ENDPOINT: CREATE A NEW WORKOUT (Place holder for future functionality)
