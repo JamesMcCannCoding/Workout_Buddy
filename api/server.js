@@ -42,7 +42,7 @@ app.get('/workouts', (req, res) => {
     });
 });
 // =========================================================================
-// FETCH FULL WORKOUT DETAILS BY ID
+// FETCH FULL WORKOUT DETAILS BY ID (Corrected SQL)
 // =========================================================================
 app.get('/workouts/:workoutId', (req, res) => {
     const { workoutId } = req.params;
@@ -55,13 +55,20 @@ app.get('/workouts/:workoutId', (req, res) => {
             we.exercise_order,
             e.exercise_name,
             e.image_url,
+            wes.set_id,
             wes.set_number,
             wes.target_reps AS reps,
-            wes.target_weight AS weight
+            wes.target_weight AS weight,
+            pd.performance_id,
+            pd.is_completed
         FROM Workouts w
         JOIN WorkoutExercises we ON w.workout_id = we.workout_id
         JOIN Exercises e ON we.exercise_id = e.exercise_id
         LEFT JOIN WorkoutExerciseSets wes ON we.workout_exercise_id = wes.workout_exercise_id
+        LEFT JOIN Performancedata pd ON 
+             pd.workout_id = w.workout_id AND 
+             pd.exercise_id = we.exercise_id AND 
+             pd.set_number = wes.set_number
         WHERE w.workout_id = ?
         ORDER BY we.exercise_order ASC, wes.set_number ASC;
     `;
@@ -72,7 +79,6 @@ app.get('/workouts/:workoutId', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
 
-        // --- Aggregation logic to group sets under exercises ---
         const workoutData = {
             workout_name: results[0]?.workout_name || 'Workout',
             exercises: []
@@ -87,14 +93,17 @@ app.get('/workouts/:workoutId', (req, res) => {
                     exercise_name: row.exercise_name,
                     exercise_order: row.exercise_order,
                     image_url: row.image_url,
-                    sets: [] // Will now hold the set objects
+                    sets: [] 
                 });
             }
             if (row.set_number) {
                 exercisesMap.get(row.workout_exercise_id).sets.push({
+                    set_id: row.set_id,
                     set_number: row.set_number,
                     reps: row.reps,
                     weight: row.weight,
+                    performance_id: row.performance_id || null, 
+                    is_completed: row.is_completed === 1 
                 });
             }
         });
@@ -249,6 +258,64 @@ app.delete('/workouts/:workoutId/exercises/:exerciseId', (req, res) => {
                 });
             });
         });
+    });
+});
+
+// =========================================================================
+// NEW ENDPOINT: UPDATE SET COMPLETION STATUS
+// =========================================================================
+app.put('/performance/:performanceId', (req, res) => {
+    const { performanceId } = req.params;
+    const { is_completed } = req.body; 
+
+    if (is_completed === undefined) {
+        return res.status(400).json({ error: "is_completed status is required." });
+    }
+
+    const completionValue = is_completed ? 1 : 0;
+    const query = 'UPDATE Performancedata SET is_completed = ? WHERE performance_id = ?';
+
+    db.query(query, [completionValue, performanceId], (err, result) => {
+        if (err) {
+            console.error('Database query error (PUT /performance):', err.message);
+            return res.status(500).json({ error: err.message });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Performance record not found.' });
+        }
+
+        res.json({ 
+            message: `Performance record ${performanceId} updated.`,
+            is_completed: is_completed 
+        });
+    });
+});
+
+// =========================================================================
+// NEW: CREATE PERFORMANCE RECORD (For first-time completion)
+// =========================================================================
+app.post('/performance', (req, res) => {
+    const { workout_id, exercise_id, set_number, weight_kg, reps_completed, is_completed } = req.body;
+    
+    // Default to current date
+    const date_performed = new Date(); 
+
+    const query = `
+        INSERT INTO Performancedata 
+        (user_id, workout_id, exercise_id, date_performed, set_number, weight_kg, reps_completed, is_completed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    // Assuming user_id is 1 for testing (replace with logic if you have auth)
+    const userId = 1; 
+
+    db.query(query, [userId, workout_id, exercise_id, date_performed, set_number, weight_kg, reps_completed, is_completed], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'Performance created', performance_id: result.insertId });
     });
 });
 

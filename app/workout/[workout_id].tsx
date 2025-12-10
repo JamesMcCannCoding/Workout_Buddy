@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     Image,
     KeyboardAvoidingView,
     LayoutAnimation,
@@ -20,7 +22,6 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-// Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -28,23 +29,23 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const API_BASE_URL = "http://10.0.2.2:3000"; 
 const IMAGE_BASE_URL = "http://10.0.2.2:3000/images";
 const PLACEHOLDER_IMAGE = require('@/assets/images/icon.png'); 
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// --- UPDATED INTERFACES FOR DETAIL DATA ---
-
-interface SetDetail { // New interface for individual set data
+interface SetDetail { 
+    set_id: number;
     set_number: number;
     reps: number;
     weight: number;
+    performance_id: number | null; 
+    is_completed: boolean;
 }
 
 interface ExerciseDetail {
-    // The main link ID is now critical for the delete function
     workout_exercise_id: number; 
     exercise_id: number; 
     exercise_name: string;
     exercise_order: number;
     image_url?: string | null;
-    // Holds an array of planned sets
     sets: SetDetail[]; 
 }
 
@@ -53,19 +54,19 @@ interface WorkoutDetails {
     exercises: ExerciseDetail[];
 }
 
-// Simple interface for the list of available exercises to add
 interface AvailableExercise {
     exercise_id: number;
     exercise_name: string;
 }
 
-// --- EXERCISE CARD COMPONENT ---
 const ExerciseCard = ({ 
     item, 
-    onRemove 
+    onRemove,
+    onToggleSet 
 }: { 
     item: ExerciseDetail, 
-    onRemove: (workoutExerciseId: number, exerciseName: string) => void 
+    onRemove: (workoutExerciseId: number, exerciseName: string) => void,
+    onToggleSet: (exerciseId: number, set: SetDetail) => void 
 }) => {
     
     const [expanded, setExpanded] = useState(false);
@@ -80,80 +81,128 @@ const ExerciseCard = ({
         setExpanded(!expanded);
     };
     
-    // Use the first set for the summary display
     const firstSet = item.sets[0];
     const totalSets = item.sets.length;
+    const isExerciseComplete = item.sets.length > 0 && item.sets.every(s => s.is_completed);
 
     return (
-        <ThemedView style={detailStyles.exerciseCard}>
-            <TouchableOpacity 
-                activeOpacity={0.7} 
-                onPress={toggleExpand}
-                style={detailStyles.cardHeader}
-            >
-                {/* Left Side: Image */}
-                <View style={detailStyles.imageContainer}>
-                    <Image 
-                        source={finalImageSource} 
-                        style={detailStyles.exerciseImage}
-                        resizeMode="cover"
-                    />
-                </View>
-
-                {/* Middle: Text Details */}
-                <View style={detailStyles.textContainer}>
-                    <ThemedText type="defaultSemiBold" style={detailStyles.exerciseName}>
-                        {item.exercise_order}. {item.exercise_name} ({totalSets} Sets)
-                    </ThemedText>
-                    
-                    <View style={detailStyles.detailsRow}>
-                         {/* Summary: Show the first set's reps/weight as the target summary */}
-                        {firstSet && (
-                            <ThemedText style={detailStyles.detailText}>
-                                Target: <ThemedText type="defaultSemiBold">{firstSet.reps}</ThemedText> reps @ <ThemedText type="defaultSemiBold">{firstSet.weight}</ThemedText>kg
-                            </ThemedText>
-                        )}
+        <View style={detailStyles.cardRowContainer}>
+            <View style={detailStyles.statusColumn}>
+                {isExerciseComplete ? (
+                    <View style={detailStyles.statusCircleSuccess}>
+                        <Ionicons name="checkmark" size={16} color="#fff" />
                     </View>
-                </View>
+                ) : (
+                    <View style={detailStyles.statusCircleEmpty}>
+                        <ThemedText style={{fontSize: 10, color: '#ccc'}}>{item.exercise_order}</ThemedText>
+                    </View>
+                )}
+                <View style={detailStyles.statusLine} />
+            </View>
 
-                {/* Right: Remove Button */}
+            <ThemedView style={detailStyles.exerciseCard}>
                 <TouchableOpacity 
-                    style={detailStyles.removeButton}
-                    onPress={(e) => {
-                        e.stopPropagation(); // Prevent dropdown toggle
-                        // Pass the unique workout_exercise_id for deletion
-                        onRemove(item.workout_exercise_id, item.exercise_name); 
-                    }}
+                    activeOpacity={0.9} 
+                    onPress={toggleExpand}
+                    style={detailStyles.cardHeader}
                 >
-                    <ThemedText style={detailStyles.removeButtonText}>X</ThemedText>
+                    <View style={detailStyles.imageContainer}>
+                        <Image 
+                            source={finalImageSource} 
+                            style={detailStyles.exerciseImage}
+                            resizeMode="cover"
+                        />
+                    </View>
+
+                    <View style={detailStyles.textContainer}>
+                        <ThemedText type="defaultSemiBold" style={detailStyles.exerciseName}>
+                            {item.exercise_name}
+                        </ThemedText>
+                        
+                        <View style={detailStyles.detailsRow}>
+                            {firstSet ? (
+                                <ThemedText style={detailStyles.detailText}>
+                                    {totalSets} Sets • {firstSet.reps} x {firstSet.weight}kg
+                                </ThemedText>
+                            ) : (
+                                <ThemedText style={detailStyles.detailText}>No sets configured</ThemedText>
+                            )}
+                        </View>
+                    </View>
+
+                    <View style={detailStyles.actionIcons}>
+                        <Ionicons 
+                            name={expanded ? "chevron-up" : "chevron-down"} 
+                            size={20} 
+                            color="#ccc" 
+                            style={{marginRight: 10}}
+                        />
+                        <TouchableOpacity 
+                            onPress={(e) => {
+                                e.stopPropagation(); 
+                                onRemove(item.workout_exercise_id, item.exercise_name); 
+                            }}
+                            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                        >
+                            <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
+                        </TouchableOpacity>
+                    </View>
                 </TouchableOpacity>
 
-            </TouchableOpacity>
-
-            {/* THE DROPDOWN CONTENT (Accordion) */}
-            {expanded && (
-                <View style={detailStyles.dropdownContainer}>
-                    <View style={detailStyles.dropdownHeader}>
-                        <ThemedText style={detailStyles.colHeader}>Set #</ThemedText>
-                        <ThemedText style={detailStyles.colHeader}>Target Weight</ThemedText>
-                        <ThemedText style={detailStyles.colHeader}>Target Reps</ThemedText>
-                    </View>
-                    
-                    {/* Iterate directly over the item.sets array */}
-                    {item.sets.map((set) => (
-                        <View key={set.set_number} style={detailStyles.setRow}>
-                            <ThemedText style={detailStyles.setCell}>#{set.set_number}</ThemedText>
-                            <ThemedText style={detailStyles.setCell}>{set.weight} kg</ThemedText>
-                            <ThemedText style={detailStyles.setCell}>{set.reps}</ThemedText>
+                {expanded && (
+                    <View style={detailStyles.dropdownContainer}>
+                        <View style={detailStyles.divider} />
+                        
+                        <View style={detailStyles.dropdownHeader}>
+                            <ThemedText style={[detailStyles.colHeader, {width: '15%'}]}>Set</ThemedText>
+                            <ThemedText style={[detailStyles.colHeader, {flex:1}]}>Previous</ThemedText>
+                            <ThemedText style={[detailStyles.colHeader, {width: '20%'}]}>kg</ThemedText>
+                            <ThemedText style={[detailStyles.colHeader, {width: '20%'}]}>Reps</ThemedText>
+                            <ThemedText style={[detailStyles.colHeader, {width: '15%'}]}>✓</ThemedText>
                         </View>
-                    ))}
-                </View>
-            )}
-        </ThemedView>
+                        
+                        {item.sets.map((set, idx) => (
+                            <View key={set.set_number} style={[
+                                detailStyles.setRow, 
+                                idx % 2 === 0 ? detailStyles.rowEven : detailStyles.rowOdd
+                            ]}>
+                                <View style={[detailStyles.setCell, {width: '15%'}]}>
+                                    <View style={detailStyles.setBadge}>
+                                        <ThemedText style={{fontSize: 10, fontWeight: 'bold', color:'#555'}}>{set.set_number}</ThemedText>
+                                    </View>
+                                </View>
+                                
+                                <View style={[detailStyles.setCell, {flex:1}]}>
+                                    <ThemedText style={{color: '#aaa', fontSize: 12}}>-</ThemedText>
+                                </View>
+                                
+                                <View style={[detailStyles.setCell, {width: '20%'}]}>
+                                    <ThemedText style={{fontWeight: '600'}}>{set.weight}</ThemedText>
+                                </View>
+                                
+                                <View style={[detailStyles.setCell, {width: '20%'}]}>
+                                    <ThemedText style={{fontWeight: '600'}}>{set.reps}</ThemedText>
+                                </View>
+                                
+                                <TouchableOpacity 
+                                    style={[detailStyles.setCell, {width: '15%', alignItems: 'center'}]}
+                                    onPress={() => onToggleSet(item.exercise_id, set)}
+                                >
+                                    <Ionicons 
+                                        name={set.is_completed ? "checkbox" : "square-outline"} 
+                                        size={24} 
+                                        color={set.is_completed ? "#2a9d8f" : "#ddd"} 
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+                    </View>
+                )}
+            </ThemedView>
+        </View>
     );
 };
 
-// --- MAIN SCREEN ---
 export default function WorkoutDetailScreen() {
     const { workout_id } = useLocalSearchParams();
     const id = typeof workout_id === 'string' ? workout_id : null;
@@ -161,33 +210,25 @@ export default function WorkoutDetailScreen() {
     const [workout, setWorkout] = useState<WorkoutDetails | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // -- STATE FOR MODAL --
     const [modalVisible, setModalVisible] = useState(false);
     const [allExercises, setAllExercises] = useState<AvailableExercise[]>([]);
     const [loadingExercises, setLoadingExercises] = useState(false);
     
-    // Form Inputs for dynamic sets
     const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
     const [setsData, setSetsData] = useState<SetDetail[]>([
-        {set_number: 1, reps: 10, weight: 0} // Start with one set
+        {set_id: 0, performance_id: null, is_completed: false, set_number: 1, reps: 10, weight: 0} 
     ]); 
 
-    // Helper to update a specific set's value (reps or weight)
     const updateSetData = (index: number, field: 'reps' | 'weight', value: string) => {
-        // Parse float for weight, integer for reps
         const numericValue = (field === 'weight' ? parseFloat(value) : parseInt(value)) || 0;
-
-        setSetsData(prev => prev.map((set, i) => 
-            i === index ? { ...set, [field]: numericValue } : set
-        ));
+        setSetsData(prev => prev.map((set, i) => i === index ? { ...set, [field]: numericValue } : set));
     };
 
     const addSet = () => {
-        // Copy the reps/weight from the last set for convenience
         const lastSet = setsData[setsData.length - 1];
         setSetsData(prev => [
             ...prev, 
-            { set_number: prev.length + 1, reps: lastSet.reps, weight: lastSet.weight }
+            { ...lastSet, set_id: 0, performance_id: null, is_completed: false, set_number: prev.length + 1 }
         ]);
     };
 
@@ -197,9 +238,8 @@ export default function WorkoutDetailScreen() {
         }
     };
     
-    // 1. Fetch Workout Details
     const fetchWorkoutDetails = async (id: string) => {
-        setLoading(true);
+        if(!workout) setLoading(true); 
         try {
             const response = await fetch(`${API_BASE_URL}/workouts/${id}`);
             if (!response.ok) throw new Error('Failed to fetch workout');
@@ -207,20 +247,18 @@ export default function WorkoutDetailScreen() {
             setWorkout(data);
         } catch (error) {
             console.error("Error fetching workout details:", error);
-            Alert.alert("Error", "Could not load workout details");
         } finally {
             setLoading(false);
         }
     };
 
-    // 2. Fetch Available Exercises (for the dropdown)
     const fetchAllExercises = async () => {
         setLoadingExercises(true);
         try {
             const response = await fetch(`${API_BASE_URL}/exercises`);
             const data = await response.json();
             setAllExercises(data);
-            if (data.length > 0) setSelectedExerciseId(data[0].exercise_id); // Default to first
+            if (data.length > 0) setSelectedExerciseId(data[0].exercise_id);
         } catch (error) {
             Alert.alert("Error", "Could not load exercises list");
         } finally {
@@ -228,55 +266,83 @@ export default function WorkoutDetailScreen() {
         }
     };
 
-    // 3. Handle Add Exercise (NO CHANGE HERE, it just calls attemptAdd)
-const handleAddExercise = async () => {
-    if (!selectedExerciseId || !id) return;
-    if (setsData.some(set => set.reps === 0 || set.weight === 0) && Alert.alert(
-        "Confirm Zero Value",
-        "Some sets have 0 reps or 0 weight. Continue?",
-        [{ text: "Cancel", style: "cancel" }, { text: "Yes", onPress: attemptAdd }]
-    )) return;
+    const handleToggleSet = async (exerciseId: number, set: SetDetail) => {
+        if (!id) return;
 
-    attemptAdd();
-};
-
-const attemptAdd = async () => {
-    // We already know ID is a string here from the check in handleAddExercise
-    // but we use the non-null assertion (id!) on the fetch call for simplicity
-    // and to satisfy TypeScript since it is used inside the Alert callback.
-    if (!id) return; // Add this line for TypeScript safety
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/workouts/${id}/exercises`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                exercise_id: selectedExerciseId,
-                setsData: setsData // Send the array of set objects
-            })
+        setWorkout(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                exercises: prev.exercises.map(ex => {
+                    if (ex.exercise_id === exerciseId) {
+                        return {
+                            ...ex,
+                            sets: ex.sets.map(s => s.set_number === set.set_number ? { ...s, is_completed: !s.is_completed } : s)
+                        };
+                    }
+                    return ex;
+                })
+            };
         });
 
-        if (!response.ok) {
-             const errorBody = await response.json();
-             throw new Error(errorBody.error || "Failed to add exercise.");
+        try {
+            if (set.performance_id) {
+                await fetch(`${API_BASE_URL}/performance/${set.performance_id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_completed: !set.is_completed })
+                });
+            } else {
+                await fetch(`${API_BASE_URL}/performance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        workout_id: id,
+                        exercise_id: exerciseId,
+                        set_number: set.set_number,
+                        weight_kg: set.weight,
+                        reps_completed: set.reps,
+                        is_completed: true 
+                    })
+                });
+            }
+            fetchWorkoutDetails(id); 
+        } catch (error) {
+            console.error("Failed to toggle set", error);
+            Alert.alert("Error", "Failed to save progress");
+            fetchWorkoutDetails(id); 
         }
+    };
 
-        // 💡 CRITICAL FIX: Replace the incorrect DELETE call with the function to refresh the workout list.
-        await fetchWorkoutDetails(id); // Use the existing function to refresh the data
+    const handleAddExercise = async () => {
+        if (!selectedExerciseId || !id) return;
+        attemptAdd();
+    };
 
-        setModalVisible(false);
-        // Reset state for next use
-        setSetsData([{set_number: 1, reps: 10, weight: 0}]); 
-        Alert.alert("Success", "Exercise Added!");
+    const attemptAdd = async () => {
+        if (!id) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/workouts/${id}/exercises`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    exercise_id: selectedExerciseId,
+                    setsData: setsData 
+                })
+            });
 
-    } catch (error) {
-        console.error(error);
-        const message = error instanceof Error ? error.message : "An unknown error occurred.";
-        Alert.alert("Error", message);
-    }
-};
+            if (!response.ok) throw new Error("Failed to add exercise.");
 
-    // 4. Handle Remove (Existing)
+            await fetchWorkoutDetails(id); 
+            setModalVisible(false);
+            setSetsData([{set_id:0, performance_id:null, is_completed:false, set_number: 1, reps: 10, weight: 0}]); 
+            Alert.alert("Success", "Exercise Added!");
+
+        } catch (error) {
+            Alert.alert("Error", "Failed to add exercise.");
+        }
+    };
+
     const handleRemoveExercise = async (workoutExerciseId: number, exerciseName: string) => {
         if (!id) return;
         Alert.alert("Confirm", `Remove ${exerciseName}?`, [
@@ -285,10 +351,7 @@ const attemptAdd = async () => {
                 text: "Remove", style: "destructive", 
                 onPress: async () => {
                     try {
-                        // DELETE endpoint now only needs the unique link ID (workout_exercise_id)
                         await fetch(`${API_BASE_URL}/workouts/${id}/exercises/${workoutExerciseId}`, { method: 'DELETE' });
-                        
-                        // Update state by filtering based on the unique link ID
                         setWorkout(prev => prev ? { 
                             ...prev, 
                             exercises: prev.exercises.filter(ex => ex.workout_exercise_id !== workoutExerciseId) 
@@ -303,7 +366,6 @@ const attemptAdd = async () => {
         if (id) fetchWorkoutDetails(id);
     }, [id]);
 
-    // Open modal handler
     const openAddModal = () => {
         setModalVisible(true);
         if (allExercises.length === 0) fetchAllExercises();
@@ -312,7 +374,6 @@ const attemptAdd = async () => {
     if (loading) return <ActivityIndicator size="large" style={{marginTop: 50}} color="#0a7ea4" />;
     if (!workout) return <ThemedText>Workout not found.</ThemedText>;
 
-    // 💡 Filter the total list of exercises to only show those NOT in the workout
     const existingExerciseIds = workout.exercises.map(e => e.exercise_id);
     const availableExercisesForSelection = allExercises.filter(
         (ex) => !existingExerciseIds.includes(ex.exercise_id)
@@ -320,101 +381,113 @@ const attemptAdd = async () => {
 
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#d0f0d0', dark: '#1e3c1e' }}
-            headerImage={<ThemedText type="title" style={detailStyles.headerTitle}>{workout.workout_name}</ThemedText>}>
+            headerBackgroundColor={{ light: '#2a9d8f', dark: '#111' }}
+            headerImage={
+                <View style={detailStyles.headerOverlay}>
+                    <ThemedText type="title" style={detailStyles.headerTitle}>{workout.workout_name}</ThemedText>
+                    <ThemedText style={{color: 'rgba(255,255,255,0.8)', fontSize: 16, marginTop: 5}}>
+                        {workout.exercises.length} Exercises
+                    </ThemedText>
+                </View>
+            }>
             
-            <ThemedView style={detailStyles.titleContainer}>
-                <ThemedText type="title">Workout Details</ThemedText>
-                {/* ADD BUTTON IN HEADER */}
-                <TouchableOpacity style={detailStyles.addButtonSmall} onPress={openAddModal}>
-                    <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>+ Add</ThemedText>
-                </TouchableOpacity>
-            </ThemedView>
+            <View style={detailStyles.mainContent}>
+                <View style={detailStyles.headerActionRow}>
+                    <ThemedText type="subtitle">Routine</ThemedText>
+                    <TouchableOpacity style={detailStyles.addButtonPill} onPress={openAddModal}>
+                        <Ionicons name="add" size={18} color="#fff" />
+                        <ThemedText style={{color: '#fff', fontWeight: 'bold', marginLeft: 4}}>Add Exercise</ThemedText>
+                    </TouchableOpacity>
+                </View>
 
-            <ThemedView style={detailStyles.listContainer}>
-                {workout.exercises.map((item, index) => (
-                    <ExerciseCard 
-                        key={item.workout_exercise_id} // Use the unique link ID as the key
-                        item={item} 
-                        onRemove={handleRemoveExercise}
-                    />
-                ))}
-            </ThemedView>
+                <View style={detailStyles.listContainer}>
+                    {workout.exercises.map((item, index) => (
+                        <ExerciseCard 
+                            key={item.workout_exercise_id} 
+                            item={item} 
+                            onRemove={handleRemoveExercise}
+                            onToggleSet={handleToggleSet}
+                        />
+                    ))}
+                </View>
+                
+                <View style={{height: 100}} /> 
+            </View>
 
-            {/* --- ADD EXERCISE MODAL --- */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}
             >
                 <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={detailStyles.modalOverlay}>
                     <View style={detailStyles.modalContent}>
-                        <ThemedText type="subtitle" style={{marginBottom: 15, textAlign: 'center'}}>Add New Exercise</ThemedText>
+                        <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
+                            <ThemedText type="subtitle">Add Exercise</ThemedText>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                <Ionicons name="close" size={24} color="#555" />
+                            </TouchableOpacity>
+                        </View>
                         
                         {loadingExercises ? <ActivityIndicator /> : (
-                            <ScrollView style={{maxHeight: '30%', marginBottom: 15}}>
+                            <ScrollView style={{height: 120, marginBottom: 15, borderBottomWidth:1, borderColor:'#eee'}}>
                                 {availableExercisesForSelection.map(ex => (
                                     <TouchableOpacity 
                                         key={ex.exercise_id} 
                                         style={[detailStyles.selectItem, selectedExerciseId === ex.exercise_id && detailStyles.selectItemActive]}
                                         onPress={() => setSelectedExerciseId(ex.exercise_id)}
                                     >
-                                        <ThemedText style={{color: selectedExerciseId === ex.exercise_id ? '#fff' : '#000'}}>
+                                        <ThemedText style={{color: selectedExerciseId === ex.exercise_id ? '#fff' : '#333'}}>
                                             {ex.exercise_name}
                                         </ThemedText>
+                                        {selectedExerciseId === ex.exercise_id && <Ionicons name="checkmark" color="#fff" size={16}/>}
                                     </TouchableOpacity>
                                 ))}
                             </ScrollView>
                         )}
                         
-                        {/* 💡 DYNAMIC SET INPUTS */}
-                        <ThemedText type="defaultSemiBold" style={{marginTop: 10, marginBottom: 10}}>Set Details ({setsData.length} sets)</ThemedText>
-                        <ScrollView style={{maxHeight: '40%', marginBottom: 15, paddingHorizontal: 5}}>
+                        <ThemedText type="defaultSemiBold" style={{marginBottom: 10}}>Configure Sets</ThemedText>
+                        <ScrollView style={{maxHeight: 200, marginBottom: 15}}>
                             {setsData.map((set, index) => (
                                 <View key={index} style={detailStyles.setFormRow}>
-                                    <ThemedText style={detailStyles.setFormLabel}>Set {index + 1}:</ThemedText>
+                                    <View style={detailStyles.setBadge}><ThemedText style={{color:'#555', fontSize: 10}}>{index + 1}</ThemedText></View>
                                     
                                     <View style={detailStyles.setFormInputGroup}>
-                                        <ThemedText style={{fontSize: 14}}>Reps</ThemedText>
                                         <TextInput
                                             style={detailStyles.setFormInput}
                                             value={String(set.reps)}
                                             onChangeText={(val) => updateSetData(index, 'reps', val)}
                                             keyboardType="numeric"
-                                            placeholder="Reps"
+                                            placeholder="0"
                                         />
+                                        <ThemedText style={detailStyles.inputLabel}>Reps</ThemedText>
                                     </View>
                                     
                                     <View style={detailStyles.setFormInputGroup}>
-                                        <ThemedText style={{fontSize: 14}}>Weight (kg)</ThemedText>
                                         <TextInput
                                             style={detailStyles.setFormInput}
                                             value={String(set.weight)}
                                             onChangeText={(val) => updateSetData(index, 'weight', val)}
                                             keyboardType="numeric"
-                                            placeholder="Weight"
+                                            placeholder="0"
                                         />
+                                        <ThemedText style={detailStyles.inputLabel}>kg</ThemedText>
                                     </View>
                                     
-                                    <TouchableOpacity style={detailStyles.setFormRemoveBtn} onPress={() => removeSet(index)}>
-                                        <ThemedText style={{color: '#fff', fontSize: 18}}>-</ThemedText>
+                                    <TouchableOpacity onPress={() => removeSet(index)}>
+                                        <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
                                     </TouchableOpacity>
                                 </View>
                             ))}
                         </ScrollView>
 
-                        <TouchableOpacity style={detailStyles.setFormAddBtn} onPress={addSet}>
-                            <ThemedText style={{color: '#2a9d8f', fontWeight: 'bold'}}>+ Add Another Set</ThemedText>
-                        </TouchableOpacity>
-                        {/* END DYNAMIC SET INPUTS */}
-
-                        <View style={detailStyles.modalButtons}>
-                            <TouchableOpacity style={[detailStyles.modalBtn, {backgroundColor: '#ccc'}]} onPress={() => setModalVisible(false)}>
-                                <ThemedText>Cancel</ThemedText>
+                        <View style={{flexDirection: 'row', gap: 10}}>
+                            <TouchableOpacity style={detailStyles.setFormAddBtn} onPress={addSet}>
+                                <Ionicons name="add" size={16} color="#2a9d8f" />
+                                <ThemedText style={{color: '#2a9d8f', fontWeight: 'bold'}}> Add Set</ThemedText>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[detailStyles.modalBtn, {backgroundColor: '#2a9d8f'}]} onPress={handleAddExercise}>
-                                <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>Save</ThemedText>
+                            <TouchableOpacity style={detailStyles.modalBtnSave} onPress={handleAddExercise}>
+                                <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>Save Exercise</ThemedText>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -425,171 +498,254 @@ const attemptAdd = async () => {
 }
 
 const detailStyles = StyleSheet.create({
-    // ... (Existing and new styles combined)
-    titleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 20,
+    mainContent: {
+        paddingHorizontal: 16,
+        paddingTop: 20,
+    },
+    headerOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingLeft: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)'
     },
     headerTitle: {
         fontSize: 32,
         fontWeight: 'bold',
-        position: 'absolute',
-        left: 20,
-        top: '30%',
-        zIndex: 1,
-        color: '#2a9d8f' 
+        color: '#fff',
     },
-    listContainer: {
-        gap: 12,
-        marginBottom: 8,
-        paddingTop: 10
+    headerActionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
     },
-    exerciseCard: {
-        backgroundColor: '#e6e6e6', 
-        borderRadius: 10,
-        borderLeftWidth: 5,
-        borderLeftColor: '#2a9d8f', 
-        elevation: 3,
+    addButtonPill: {
+        backgroundColor: '#2a9d8f',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 25,
+        flexDirection: 'row',
+        alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.41,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    
+    listContainer: {
+        gap: 16,
+    },
+    cardRowContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    statusColumn: {
+        alignItems: 'center',
+        marginRight: 12,
+        paddingTop: 24,
+        width: 24,
+    },
+    statusCircleSuccess: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#4CAF50',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 2,
+    },
+    statusCircleEmpty: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: '#ddd',
+        backgroundColor: '#f9f9f9',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 2,
+    },
+    statusLine: {
+        width: 2,
+        flex: 1,
+        backgroundColor: '#eee',
+        marginTop: -5,
+        marginBottom: -30,
+        zIndex: 1,
+    },
+    
+    exerciseCard: {
+        flex: 1,
+        backgroundColor: '#fff', 
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#f0f0f0',
         overflow: 'hidden',
     },
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between', 
-        padding: 10,
+        padding: 12,
     },
-    imageContainer: { marginRight: 15 },
+    imageContainer: { 
+        marginRight: 12,
+    },
     exerciseImage: {
-        width: 60, height: 60, borderRadius: 8, backgroundColor: '#ddd'
+        width: 50, 
+        height: 50, 
+        borderRadius: 8, 
+        backgroundColor: '#f0f0f0'
     },
     textContainer: {
-        flex: 1, justifyContent: 'center', marginRight: 15,
+        flex: 1, 
+        justifyContent: 'center',
     },
     exerciseName: {
-        fontSize: 18, marginBottom: 5, color: '#000'
+        fontSize: 16, 
+        marginBottom: 2, 
+        color: '#333'
     },
     detailsRow: {
-        flexDirection: 'row', justifyContent: 'flex-start', flexWrap: 'wrap', 
+        flexDirection: 'row', 
     },
     detailText: {
-        fontSize: 16, color: '#555', marginRight: 15,
+        fontSize: 13, 
+        color: '#888',
     },
-    removeButton: {
-        width: 30, height: 30, borderRadius: 15, backgroundColor: '#dc3545', 
-        justifyContent: 'center', alignItems: 'center',
+    actionIcons: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    removeButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    
     dropdownContainer: {
-        backgroundColor: '#f2f2f2', borderTopWidth: 1, borderTopColor: '#ccc', padding: 10,
+        backgroundColor: '#fff',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#f0f0f0',
+        marginHorizontal: 12,
     },
     dropdownHeader: {
-        flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, 
-        borderBottomWidth: 1, borderBottomColor: '#ddd', paddingBottom: 5,
+        flexDirection: 'row', 
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#fafafa',
     },
     colHeader: {
-        fontWeight: 'bold', fontSize: 14, color: '#333', width: '33%', textAlign: 'center',
+        fontSize: 11, 
+        color: '#999', 
+        fontWeight: '600',
+        textAlign: 'center',
     },
     setRow: {
-        flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, 
-        borderBottomWidth: 1, borderBottomColor: '#e0e0e0',
+        flexDirection: 'row', 
+        paddingVertical: 12, 
+        paddingHorizontal: 16,
+        alignItems: 'center',
     },
+    rowEven: { backgroundColor: '#fff' },
+    rowOdd: { backgroundColor: '#fcfcfc' },
+    
     setCell: {
-        fontSize: 14, color: '#555', width: '33%', textAlign: 'center',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    addButtonSmall: {
-        backgroundColor: '#2a9d8f',
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 20,
-        marginLeft: 'auto', 
+    setBadge: {
+        backgroundColor: '#eee',
+        borderRadius: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        alignSelf: 'center',
     },
-    // Modal Styles
+    
     modalOverlay: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
     },
     modalContent: {
-        width: '95%',
-        maxHeight: '100%', 
+        width: '90%',
         backgroundColor: '#fff',
         borderRadius: 20,
-        padding: 20,
+        padding: 24,
         elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
+        maxHeight: '80%',
     },
     selectItem: {
-        padding: 10,
+        padding: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: '#f5f5f5',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     selectItemActive: {
         backgroundColor: '#2a9d8f',
-        borderRadius: 5,
+        borderRadius: 8,
+        borderColor: 'transparent',
     },
-    modalButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 10,
-    },
-    modalBtn: {
-        flex: 1,
-        padding: 12,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    // Dynamic Set Form Styles
+    
     setFormRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 10,
-        paddingVertical: 5,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-    },
-    setFormLabel: {
-        width: '15%',
-        fontWeight: 'bold',
+        backgroundColor: '#f9f9f9',
+        padding: 8,
+        borderRadius: 8,
     },
     setFormInputGroup: {
-        width: '35%',
         alignItems: 'center',
     },
     setFormInput: {
+        backgroundColor: '#fff',
         borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        padding: 5,
-        fontSize: 14,
-        marginTop: 2,
-        width: '100%',
+        borderColor: '#ddd',
+        borderRadius: 8,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        fontSize: 16,
+        width: 60,
         textAlign: 'center',
+        fontWeight: 'bold',
+        color: '#333',
     },
-    setFormRemoveBtn: {
-        backgroundColor: '#dc3545',
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
+    inputLabel: {
+        fontSize: 10,
+        color: '#999',
+        marginTop: 2,
     },
     setFormAddBtn: {
-        padding: 10,
+        flex: 1,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        padding: 12,
         borderWidth: 1,
         borderColor: '#2a9d8f',
-        borderRadius: 8,
-        marginBottom: 15,
+        borderRadius: 12,
+        borderStyle: 'dashed',
     },
+    modalBtnSave: {
+        flex: 2,
+        backgroundColor: '#2a9d8f',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 12,
+        shadowColor: '#2a9d8f',
+        shadowOffset: {width: 0, height: 4},
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 4,
+    },
+    
+    removeButton: { display: 'none' }, 
+    removeButtonText: { display: 'none' },
 });
