@@ -195,12 +195,11 @@ app.post('/workouts/:workoutId/exercises', (req, res) => {
                 
                 const workoutExerciseId = result.insertId;
                 
-                // 3. Insert each set into WorkoutExerciseSets
                 const setValues = setsData.map((set, index) => [
                     workoutExerciseId,
-                    index + 1, // set_number
-                    set.reps,  // target_reps
-                    set.weight // target_weight
+                    index + 1,
+                    set.reps,
+                    set.weight
                 ]);
 
                 const insertSetsQuery = `
@@ -223,37 +222,56 @@ app.post('/workouts/:workoutId/exercises', (req, res) => {
 });
 
 // =========================================================================
-// DELETE ENDPOINT: REMOVE EXERCISE FROM WORKOUT
+// CORRECTED DELETE ENDPOINT: REMOVE EXERCISE FROM WORKOUT
 // =========================================================================
-app.delete('/workouts/:workoutId/exercises/:exerciseId', (req, res) => {
-    const { workoutId, exerciseId } = req.params;
+app.delete('/workouts/:workoutId/exercises/:workoutExerciseId', (req, res) => {
+    const { workoutExerciseId } = req.params;
 
-    // We now delete by exerciseId AND workoutId (since the unique key is the link table)
-    const getLinkQuery = 'SELECT workout_exercise_id FROM WorkoutExercises WHERE workout_id = ? AND exercise_id = ?';
+    if (!workoutExerciseId) {
+        return res.status(400).json({ error: 'Workout exercise ID is missing.' });
+    }
 
-    db.query(getLinkQuery, [workoutId, exerciseId], (err, results) => {
-        if (err || results.length === 0) {
-            return res.status(404).json({ error: 'Exercise link not found.' });
+    db.beginTransaction(err => {
+        if (err) {
+            console.error("Transaction failed to start:", err);
+            return res.status(500).json({ error: "Transaction failed to start" });
         }
 
-        const workoutExerciseId = results[0].workout_exercise_id;
+        const getSetsQuery = 'SELECT set_id FROM WorkoutExerciseSets WHERE workout_exercise_id = ?';
+        db.query(getSetsQuery, [workoutExerciseId], (err, setResults) => {
+            if (err) return db.rollback(() => res.status(500).json({ error: "Error getting sets for cleanup" }));
+            
+            const setIds = setResults.map(row => row.set_id);
+            
+            const deletePerformanceQuery = `
+                DELETE pd FROM Performancedata pd
+                JOIN WorkoutExercises we 
+                    ON pd.workout_id = we.workout_id AND pd.exercise_id = we.exercise_id
+                WHERE we.workout_exercise_id = ?;
+            `;
+            
+            db.query(deletePerformanceQuery, [workoutExerciseId], (err, perfResults) => {
+                if (err) return db.rollback(() => res.status(500).json({ error: "Error deleting performance data" }));
+                console.log(`Deleted ${perfResults.affectedRows} performance records.`);
 
-        db.beginTransaction(err => {
-            if (err) return res.status(500).json({ error: "Transaction failed" });
+                const deleteSetsQuery = 'DELETE FROM WorkoutExerciseSets WHERE workout_exercise_id = ?';
+                db.query(deleteSetsQuery, [workoutExerciseId], (err, setResults) => {
+                    if (err) return db.rollback(() => res.status(500).json({ error: "Error deleting sets" }));
+                    console.log(`Deleted ${setResults.affectedRows} set records.`);
 
-            // 1. Delete associated sets first
-            const deleteSetsQuery = 'DELETE FROM WorkoutExerciseSets WHERE workout_exercise_id = ?';
-            db.query(deleteSetsQuery, [workoutExerciseId], (err, setResults) => {
-                if (err) return db.rollback(() => res.status(500).json({ error: "Error deleting sets" }));
+                    const deleteExerciseQuery = 'DELETE FROM WorkoutExercises WHERE workout_exercise_id = ?';
+                    db.query(deleteExerciseQuery, [workoutExerciseId], (err, linkResults) => {
+                        if (err) return db.rollback(() => res.status(500).json({ error: "Error deleting exercise link" }));
 
-                // 2. Delete the main exercise link
-                const deleteExerciseQuery = 'DELETE FROM WorkoutExercises WHERE workout_exercise_id = ?';
-                db.query(deleteExerciseQuery, [workoutExerciseId], (err, linkResults) => {
-                    if (err) return db.rollback(() => res.status(500).json({ error: "Error deleting exercise link" }));
+                        if (linkResults.affectedRows === 0) {
+                            console.warn("Attempted to delete non-existent WorkoutExercise record.");
+                        }
 
-                    db.commit(err => {
-                        if (err) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
-                        res.json({ message: 'Exercise and sets deleted successfully' });
+                        db.commit(err => {
+                            if (err) return db.rollback(() => res.status(500).json({ error: "Commit failed" }));
+                            
+                            res.status(204).send(); 
+                        });
                     });
                 });
             });
@@ -293,7 +311,7 @@ app.put('/performance/:performanceId', (req, res) => {
 });
 
 // =========================================================================
-// NEW: CREATE PERFORMANCE RECORD (For first-time completion)
+// CREATE PERFORMANCE RECORD (For first-time completion)
 // =========================================================================
 app.post('/performance', (req, res) => {
     const { workout_id, exercise_id, set_number, weight_kg, reps_completed, is_completed } = req.body;
@@ -307,7 +325,6 @@ app.post('/performance', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    // Assuming user_id is 1 for testing (replace with logic if you have auth)
     const userId = 1; 
 
     db.query(query, [userId, workout_id, exercise_id, date_performed, set_number, weight_kg, reps_completed, is_completed], (err, result) => {

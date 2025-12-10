@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -206,6 +206,7 @@ const ExerciseCard = ({
 export default function WorkoutDetailScreen() {
     const { workout_id } = useLocalSearchParams();
     const id = typeof workout_id === 'string' ? workout_id : null;
+    const router = useRouter();
 
     const [workout, setWorkout] = useState<WorkoutDetails | null>(null);
     const [loading, setLoading] = useState(true);
@@ -245,6 +246,10 @@ export default function WorkoutDetailScreen() {
             if (!response.ok) throw new Error('Failed to fetch workout');
             const data = await response.json();
             setWorkout(data);
+
+            if (data.workout_name) {
+                router.setParams({ title: data.workout_name });
+            }
         } catch (error) {
             console.error("Error fetching workout details:", error);
         } finally {
@@ -350,13 +355,24 @@ export default function WorkoutDetailScreen() {
             { 
                 text: "Remove", style: "destructive", 
                 onPress: async () => {
+                    const url = `${API_BASE_URL}/workouts/${id}/exercises/${workoutExerciseId}`;
                     try {
-                        await fetch(`${API_BASE_URL}/workouts/${id}/exercises/${workoutExerciseId}`, { method: 'DELETE' });
-                        setWorkout(prev => prev ? { 
-                            ...prev, 
-                            exercises: prev.exercises.filter(ex => ex.workout_exercise_id !== workoutExerciseId) 
-                        } : prev);
-                    } catch (err) { Alert.alert("Error", "Failed to remove"); }
+                        const response = await fetch(url, { method: 'DELETE' });
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error(`Deletion failed! URL: ${url}. Status: ${response.status}. Response: ${errorText}`);
+                            throw new Error(`Server returned status ${response.status}: ${errorText}`);
+                        }
+
+                        await fetchWorkoutDetails(id); 
+                        
+                        Alert.alert("Success", `${exerciseName} has been removed.`);
+
+                    } catch (err: any) { 
+                        console.error("Deletion error:", err.message || err);
+                        Alert.alert("Error", "Failed to remove exercise. Please ensure the server is running and the API endpoint is correct."); 
+                    }
                 }
             }
         ]);
@@ -380,120 +396,127 @@ export default function WorkoutDetailScreen() {
     );
 
     return (
-        <ParallaxScrollView
-            headerBackgroundColor={{ light: '#2a9d8f', dark: '#111' }}
-            headerImage={
-                <View style={detailStyles.headerOverlay}>
-                    <ThemedText type="title" style={detailStyles.headerTitle}>{workout.workout_name}</ThemedText>
-                    <ThemedText style={{color: 'rgba(255,255,255,0.8)', fontSize: 16, marginTop: 5}}>
-                        {workout.exercises.length} Exercises
-                    </ThemedText>
-                </View>
-            }>
+        <>
+            <Stack.Screen options={{ 
+                title: workout?.workout_name || 'Loading Workout...',
+                headerShown: true, 
+            }} />
             
-            <View style={detailStyles.mainContent}>
-                <View style={detailStyles.headerActionRow}>
-                    <ThemedText type="subtitle">Routine</ThemedText>
-                    <TouchableOpacity style={detailStyles.addButtonPill} onPress={openAddModal}>
-                        <Ionicons name="add" size={18} color="#fff" />
-                        <ThemedText style={{color: '#fff', fontWeight: 'bold', marginLeft: 4}}>Add Exercise</ThemedText>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={detailStyles.listContainer}>
-                    {workout.exercises.map((item, index) => (
-                        <ExerciseCard 
-                            key={item.workout_exercise_id} 
-                            item={item} 
-                            onRemove={handleRemoveExercise}
-                            onToggleSet={handleToggleSet}
-                        />
-                    ))}
-                </View>
+            <ParallaxScrollView
+                headerBackgroundColor={{ light: '#2a9d8f', dark: '#111' }}
+                headerImage={
+                    <View style={detailStyles.headerOverlay}>
+                        <ThemedText type="title" style={detailStyles.headerTitle}>{workout.workout_name}</ThemedText>
+                        <ThemedText style={{color: 'rgba(255,255,255,0.8)', fontSize: 16, marginTop: 5}}>
+                            {workout.exercises.length} Exercises
+                        </ThemedText>
+                    </View>
+                }>
                 
-                <View style={{height: 100}} /> 
-            </View>
+                <View style={detailStyles.mainContent}>
+                    <View style={detailStyles.headerActionRow}>
+                        <ThemedText type="subtitle">Routine</ThemedText>
+                        <TouchableOpacity style={detailStyles.addButtonPill} onPress={openAddModal}>
+                            <Ionicons name="add" size={18} color="#fff" />
+                            <ThemedText style={{color: '#fff', fontWeight: 'bold', marginLeft: 4}}>Add Exercise</ThemedText>
+                        </TouchableOpacity>
+                    </View>
 
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={detailStyles.modalOverlay}>
-                    <View style={detailStyles.modalContent}>
-                        <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
-                            <ThemedText type="subtitle">Add Exercise</ThemedText>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <Ionicons name="close" size={24} color="#555" />
-                            </TouchableOpacity>
-                        </View>
-                        
-                        {loadingExercises ? <ActivityIndicator /> : (
-                            <ScrollView style={{height: 120, marginBottom: 15, borderBottomWidth:1, borderColor:'#eee'}}>
-                                {availableExercisesForSelection.map(ex => (
-                                    <TouchableOpacity 
-                                        key={ex.exercise_id} 
-                                        style={[detailStyles.selectItem, selectedExerciseId === ex.exercise_id && detailStyles.selectItemActive]}
-                                        onPress={() => setSelectedExerciseId(ex.exercise_id)}
-                                    >
-                                        <ThemedText style={{color: selectedExerciseId === ex.exercise_id ? '#fff' : '#333'}}>
-                                            {ex.exercise_name}
-                                        </ThemedText>
-                                        {selectedExerciseId === ex.exercise_id && <Ionicons name="checkmark" color="#fff" size={16}/>}
-                                    </TouchableOpacity>
+                    <View style={detailStyles.listContainer}>
+                        {workout.exercises.map((item, index) => (
+                            <ExerciseCard 
+                                key={item.workout_exercise_id} 
+                                item={item} 
+                                onRemove={handleRemoveExercise}
+                                onToggleSet={handleToggleSet}
+                            />
+                        ))}
+                    </View>
+                    
+                    <View style={{height: 100}} /> 
+                </View>
+
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}
+                >
+                    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={detailStyles.modalOverlay}>
+                        <View style={detailStyles.modalContent}>
+                            <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
+                                <ThemedText type="subtitle">Add Exercise</ThemedText>
+                                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color="#555" />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            {loadingExercises ? <ActivityIndicator /> : (
+                                <ScrollView style={{height: 120, marginBottom: 15, borderBottomWidth:1, borderColor:'#eee'}}>
+                                    {availableExercisesForSelection.map(ex => (
+                                        <TouchableOpacity 
+                                            key={ex.exercise_id} 
+                                            style={[detailStyles.selectItem, selectedExerciseId === ex.exercise_id && detailStyles.selectItemActive]}
+                                            onPress={() => setSelectedExerciseId(ex.exercise_id)}
+                                        >
+                                            <ThemedText style={{color: selectedExerciseId === ex.exercise_id ? '#fff' : '#333'}}>
+                                                {ex.exercise_name}
+                                            </ThemedText>
+                                            {selectedExerciseId === ex.exercise_id && <Ionicons name="checkmark" color="#fff" size={16}/>}
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            )}
+                            
+                            <ThemedText type="defaultSemiBold" style={{marginBottom: 10}}>Configure Sets</ThemedText>
+                            <ScrollView style={{maxHeight: 200, marginBottom: 15}}>
+                                {setsData.map((set, index) => (
+                                    <View key={index} style={detailStyles.setFormRow}>
+                                        <View style={detailStyles.setBadge}><ThemedText style={{color:'#555', fontSize: 10}}>{index + 1}</ThemedText></View>
+                                        
+                                        <View style={detailStyles.setFormInputGroup}>
+                                            <TextInput
+                                                style={detailStyles.setFormInput}
+                                                value={String(set.reps)}
+                                                onChangeText={(val) => updateSetData(index, 'reps', val)}
+                                                keyboardType="numeric"
+                                                placeholder="0"
+                                            />
+                                            <ThemedText style={detailStyles.inputLabel}>Reps</ThemedText>
+                                        </View>
+                                        
+                                        <View style={detailStyles.setFormInputGroup}>
+                                            <TextInput
+                                                style={detailStyles.setFormInput}
+                                                value={String(set.weight)}
+                                                onChangeText={(val) => updateSetData(index, 'weight', val)}
+                                                keyboardType="numeric"
+                                                placeholder="0"
+                                            />
+                                            <ThemedText style={detailStyles.inputLabel}>kg</ThemedText>
+                                        </View>
+                                        
+                                        <TouchableOpacity onPress={() => removeSet(index)}>
+                                            <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
+                                        </TouchableOpacity>
+                                    </View>
                                 ))}
                             </ScrollView>
-                        )}
-                        
-                        <ThemedText type="defaultSemiBold" style={{marginBottom: 10}}>Configure Sets</ThemedText>
-                        <ScrollView style={{maxHeight: 200, marginBottom: 15}}>
-                            {setsData.map((set, index) => (
-                                <View key={index} style={detailStyles.setFormRow}>
-                                    <View style={detailStyles.setBadge}><ThemedText style={{color:'#555', fontSize: 10}}>{index + 1}</ThemedText></View>
-                                    
-                                    <View style={detailStyles.setFormInputGroup}>
-                                        <TextInput
-                                            style={detailStyles.setFormInput}
-                                            value={String(set.reps)}
-                                            onChangeText={(val) => updateSetData(index, 'reps', val)}
-                                            keyboardType="numeric"
-                                            placeholder="0"
-                                        />
-                                        <ThemedText style={detailStyles.inputLabel}>Reps</ThemedText>
-                                    </View>
-                                    
-                                    <View style={detailStyles.setFormInputGroup}>
-                                        <TextInput
-                                            style={detailStyles.setFormInput}
-                                            value={String(set.weight)}
-                                            onChangeText={(val) => updateSetData(index, 'weight', val)}
-                                            keyboardType="numeric"
-                                            placeholder="0"
-                                        />
-                                        <ThemedText style={detailStyles.inputLabel}>kg</ThemedText>
-                                    </View>
-                                    
-                                    <TouchableOpacity onPress={() => removeSet(index)}>
-                                        <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </ScrollView>
 
-                        <View style={{flexDirection: 'row', gap: 10}}>
-                            <TouchableOpacity style={detailStyles.setFormAddBtn} onPress={addSet}>
-                                <Ionicons name="add" size={16} color="#2a9d8f" />
-                                <ThemedText style={{color: '#2a9d8f', fontWeight: 'bold'}}> Add Set</ThemedText>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={detailStyles.modalBtnSave} onPress={handleAddExercise}>
-                                <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>Save Exercise</ThemedText>
-                            </TouchableOpacity>
+                            <View style={{flexDirection: 'row', gap: 10}}>
+                                <TouchableOpacity style={detailStyles.setFormAddBtn} onPress={addSet}>
+                                    <Ionicons name="add" size={16} color="#2a9d8f" />
+                                    <ThemedText style={{color: '#2a9d8f', fontWeight: 'bold'}}> Add Set</ThemedText>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={detailStyles.modalBtnSave} onPress={handleAddExercise}>
+                                    <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>Save Exercise</ThemedText>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
-                </KeyboardAvoidingView>
-            </Modal>
-        </ParallaxScrollView>
+                    </KeyboardAvoidingView>
+                </Modal>
+            </ParallaxScrollView>
+        </>
     );
 }
 
@@ -506,7 +529,7 @@ const detailStyles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         paddingLeft: 20,
-        backgroundColor: 'rgba(0,0,0,0.3)'
+        backgroundColor: 'rgba(0,0,0,0.3)' 
     },
     headerTitle: {
         fontSize: 32,
