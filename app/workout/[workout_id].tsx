@@ -522,13 +522,13 @@ export default function WorkoutDetailScreen() {
 
 const detailStyles = StyleSheet.create({
     mainContent: {
-        paddingHorizontal: 16,
+        paddingHorizontal: 2,
         paddingTop: 20,
     },
     headerOverlay: {
         flex: 1,
         justifyContent: 'center',
-        paddingLeft: 20,
+        paddingLeft: 30,
         backgroundColor: 'rgba(0,0,0,0.3)' 
     },
     headerTitle: {
@@ -543,7 +543,7 @@ const detailStyles = StyleSheet.create({
         marginBottom: 15,
     },
     addButtonPill: {
-        backgroundColor: '#2a9d8f',
+        backgroundColor: '#173ad3ff',
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 25,
@@ -565,9 +565,9 @@ const detailStyles = StyleSheet.create({
     },
     statusColumn: {
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 22,
         paddingTop: 24,
-        width: 24,
+        width: 5,
     },
     statusCircleSuccess: {
         width: 24,
@@ -699,7 +699,7 @@ const detailStyles = StyleSheet.create({
         borderRadius: 20,
         padding: 24,
         elevation: 5,
-        maxHeight: '80%',
+        maxHeight: '90%',
     },
     selectItem: {
         padding: 12,
@@ -709,7 +709,7 @@ const detailStyles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     selectItemActive: {
-        backgroundColor: '#2a9d8f',
+        backgroundColor: '#173ad3ff',
         borderRadius: 8,
         borderColor: 'transparent',
     },
@@ -751,18 +751,18 @@ const detailStyles = StyleSheet.create({
         justifyContent: 'center',
         padding: 12,
         borderWidth: 1,
-        borderColor: '#2a9d8f',
+        borderColor: '#173ad3ff',
         borderRadius: 12,
         borderStyle: 'dashed',
     },
     modalBtnSave: {
         flex: 2,
-        backgroundColor: '#2a9d8f',
+        backgroundColor: '#173ad3ff',
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         padding: 12,
-        shadowColor: '#2a9d8f',
+        shadowColor: '#173ad3ff',
         shadowOffset: {width: 0, height: 4},
         shadowOpacity: 0.3,
         shadowRadius: 5,

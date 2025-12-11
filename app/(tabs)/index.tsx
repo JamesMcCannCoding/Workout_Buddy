@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useColorScheme
+    ActivityIndicator,
+    Alert,
+    Modal,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+    useColorScheme
 } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -62,43 +62,44 @@ export default function HomeScreen() {
     };
 
     const handleSaveNewWorkout = async () => {
-        if (!newWorkoutName.trim()) {
-            Alert.alert("Input Required", "Please enter a name for your new workout routine.");
-            return;
-        }
-        
-        setLoading(true);
-        setIsCreateModalVisible(false);
+        if (!newWorkoutName.trim()) {
+            Alert.alert("Input Required", "Please enter a name for your new workout routine.");
+            return;
+        }
+        
+        setLoading(true);
+        setIsCreateModalVisible(false);
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ workout_name: newWorkoutName.trim() }),
-            });
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ workout_name: newWorkoutName.trim() }),
+            });
 
-            if (!response.ok) {
-                throw new Error('Failed to create workout');
-            }
+            if (!response.ok) {
+                throw new Error('Failed to create workout');
+            }
 
-            const newWorkoutData = await response.json();
-            
-            await fetchWorkouts();
-            setNewWorkoutName('');
-            Alert.alert("Success", `Routine '${newWorkoutName.trim()}' created!`);
-            
-            router.push({
-                pathname: "/workout/[workout_id]",
-                params: { workout_id: newWorkoutData.workout_id },
-            });
+            const newWorkoutData = await response.json();
+            
+            await fetchWorkouts();
+            setNewWorkoutName('');
+            Alert.alert("Success", `Routine '${newWorkoutName.trim()}' created!`);
+            
+            // 💡 FIX IS HERE: Change .workout_id to .id
+            router.push({
+                pathname: "/workout/[workout_id]",
+                params: { workout_id: newWorkoutData.id }, 
+            });
 
-        } catch (error) {
-            console.error("Error creating workout:", error);
-            Alert.alert("Error", "Could not create new workout. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
+        } catch (error) {
+            console.error("Error creating workout:", error);
+            Alert.alert("Error", "Could not create new workout. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleCreateNewWorkout = () => {
         setNewWorkoutName(''); 
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
         marginRight: 15,
         padding: 8,
         borderRadius: 8,
-        backgroundColor: '#e6f4f2', // Light green background for icon
+        backgroundColor: '#e6f4f2',
     },
     cardTextContainer: {
         flex: 1,
