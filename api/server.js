@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 const app = express();
 app.use(cors());
@@ -333,6 +334,70 @@ app.post('/performance', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         res.json({ message: 'Performance created', performance_id: result.insertId });
+    });
+});
+
+// =========================================================================
+// AUTHENTICATION: SIGN UP
+// =========================================================================
+app.post('/signup', async (req, res) => {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: "All fields are required" });
+    }
+
+    try {
+        // 1. Check if user exists
+        const checkQuery = 'SELECT * FROM Users WHERE username = ? OR email = ?';
+        db.query(checkQuery, [username, email], async (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (results.length > 0) return res.status(409).json({ error: "User already exists" });
+
+            // 2. Hash the password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // 3. Insert new user
+            const insertQuery = 'INSERT INTO Users (username, email, password_hash) VALUES (?, ?, ?)';
+            db.query(insertQuery, [username, email, hashedPassword], (err, result) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ message: "User registered successfully", userId: result.insertId });
+            });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Server error during registration" });
+    }
+});
+
+// =========================================================================
+// AUTHENTICATION: LOGIN
+// =========================================================================
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: "Username and password required" });
+    }
+
+    const query = 'SELECT * FROM Users WHERE username = ?';
+    db.query(query, [username], async (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        if (results.length === 0) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+
+        const user = results[0];
+
+        // Compare the provided password with the stored hash
+        const match = await bcrypt.compare(password, user.password_hash);
+
+        if (!match) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+
+        // Login successful
+        res.json({ message: "Login successful", userId: user.user_id, username: user.username });
     });
 });
 

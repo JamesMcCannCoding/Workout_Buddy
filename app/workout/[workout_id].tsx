@@ -403,7 +403,7 @@ export default function WorkoutDetailScreen() {
             }} />
             
             <ParallaxScrollView
-                headerBackgroundColor={{ light: '#2a9d8f', dark: '#111' }}
+                headerBackgroundColor={{ light: '#173ad3ff', dark: '#111' }}
                 headerImage={
                     <View style={detailStyles.headerOverlay}>
                         <ThemedText type="title" style={detailStyles.headerTitle}>{workout.workout_name}</ThemedText>
@@ -505,8 +505,8 @@ export default function WorkoutDetailScreen() {
 
                             <View style={{flexDirection: 'row', gap: 10}}>
                                 <TouchableOpacity style={detailStyles.setFormAddBtn} onPress={addSet}>
-                                    <Ionicons name="add" size={16} color="#2a9d8f" />
-                                    <ThemedText style={{color: '#2a9d8f', fontWeight: 'bold'}}> Add Set</ThemedText>
+                                    <Ionicons name="add" size={16} color="#173ad3ff" />
+                                    <ThemedText style={{color: '#173ad3ff', fontWeight: 'bold'}}> Add Set</ThemedText>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={detailStyles.modalBtnSave} onPress={handleAddExercise}>
                                     <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>Save Exercise</ThemedText>

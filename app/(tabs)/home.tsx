@@ -27,6 +27,10 @@ interface Workout {
 export default function HomeScreen() {
     const router = useRouter(); 
     
+    const handleBack = () => {
+        router.back();
+    };
+
     const [workouts, setWorkouts] = useState<Workout[]>([]);
     const [loading, setLoading] = useState(true);
     const colorScheme = useColorScheme();
@@ -112,17 +116,31 @@ export default function HomeScreen() {
 
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#2a9d8f', dark: '#111' }}
-            headerImage={
-                <View style={styles.headerOverlay}>
-                    <ThemedText 
-                        type="title" 
-                        style={[styles.headerTitle, headerTitleStyle]}
-                    >
-                        Workout Buddy
-                    </ThemedText>
-                </View>
-            }>
+            headerBackgroundColor={{ light: '#173ad3ff', dark: '#111' }}
+headerImage={
+    <View style={styles.headerOverlay}>
+        <View style={styles.headerTopRow}>
+            
+            {/* 💡 1. Add Settings Button (Left Side) */}
+            <TouchableOpacity 
+                onPress={() => router.push('/settings')}
+                style={styles.aboutButton} // Reusing the same style for consistency
+            >
+                <Ionicons name="settings-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            <ThemedText type="title" style={styles.headerTitle}>Workout Buddy</ThemedText>
+            
+            {/* 2. Existing About/Info Button (Right Side) */}
+            <TouchableOpacity 
+                onPress={() => router.push('/about')}
+                style={styles.aboutButton}
+            >
+                <Ionicons name="information-circle-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+        </View>
+    </View>
+}>
             
             <ThemedView style={styles.mainContent}>
                 <ThemedText type="subtitle">Your Routines</ThemedText>
@@ -218,7 +236,6 @@ export default function HomeScreen() {
         </ParallaxScrollView>
     );
 }
-
 const styles = StyleSheet.create({
     mainContent: {
         paddingHorizontal: 16,
@@ -227,27 +244,40 @@ const styles = StyleSheet.create({
     headerOverlay: {
         flex: 1,
         justifyContent: 'center',
-        paddingLeft: 20,
+        paddingHorizontal: 20,
         backgroundColor: 'rgba(0,0,0,0.3)' 
     },
+    headerTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'absolute',
+        top: '30%',
+        left: 20,
+        right: 20,
+        zIndex: 1
+    },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#fff', 
-        position: 'absolute',
+        //position: 'absolute',
         left: 20,
         top: '30%',
         zIndex: 1
     },
-    
-    // --- CREATE BUTTON STYLES ---
+    aboutButton: {
+        padding: 5,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 20,
+    },
     buttonContainer: {
         paddingHorizontal: 16,
         paddingTop: 10,
         marginBottom: 20,
     },
     createButtonPill: {
-        backgroundColor: '#2a9d8f',
+        backgroundColor: '#173ad3ff',
         paddingHorizontal: 20,
         paddingVertical: 14,
         borderRadius: 30,
@@ -266,8 +296,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginLeft: 8,
     },
-
-    // --- WORKOUT CARD LIST STYLES ---
     listContainer: {
         paddingHorizontal: 16,
     },
@@ -367,7 +395,7 @@ const styles = StyleSheet.create({
         borderColor: '#ddd',
     },
     modalBtnCreate: {
-        backgroundColor: '#2a9d8f',
+        backgroundColor: '#173ad3ff',
     },
     modalBtnTextCancel: {
         color: '#555',
