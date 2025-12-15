@@ -18,27 +18,37 @@ const db = mysql.createConnection({
 });
 
 // =========================================================================
-// NEW ENDPOINT: FETCH ALL SAVED WORKOUTS FOR THE HOME SCREEN
+// NEW ENDPOINT: FETCH ALL SAVED WORKOUTS FOR THE HOME SCREEN (MODIFIED)
 // =========================================================================
 app.get('/workouts', (req, res) => {
-    // We join Workouts and Users so we can see which user owns the routine.
+    // 1. Extract the user_id from the query parameters
+    const { user_id } = req.query;
+
+    if (!user_id) {
+        // If user_id is missing (unauthenticated access), return an empty list or an error.
+        // Returning an empty list is safer for the front-end.
+        console.warn('GET /workouts attempted without user_id query parameter.');
+        return res.json([]); 
+    }
+
+    // 2. Modify the query to filter by the user_id
     const query = `
         SELECT 
             w.workout_id, 
-            w.workout_name, 
-            u.username 
+            w.workout_name
         FROM 
             Workouts w
-        JOIN 
-            Users u ON w.user_id = u.user_id;
+        WHERE
+            w.user_id = ?;
     `;
     
-    db.query(query, (err, results) => {
+    // 3. Pass the user_id to the query
+    db.query(query, [user_id], (err, results) => {
         if (err) {
             console.error('Database query error (GET /workouts):', err.message);
             return res.status(500).json({ error: err.message });
         }
-        console.log(`Successfully fetched ${results.length} workouts.`);
+        console.log(`Successfully fetched ${results.length} workouts for user ${user_id}.`);
         res.json(results);
     });
 });
@@ -67,9 +77,9 @@ app.get('/workouts/:workoutId', (req, res) => {
         JOIN Exercises e ON we.exercise_id = e.exercise_id
         LEFT JOIN WorkoutExerciseSets wes ON we.workout_exercise_id = wes.workout_exercise_id
         LEFT JOIN Performancedata pd ON 
-             pd.workout_id = w.workout_id AND 
-             pd.exercise_id = we.exercise_id AND 
-             pd.set_number = wes.set_number
+            pd.workout_id = w.workout_id AND 
+            pd.exercise_id = we.exercise_id AND 
+            pd.set_number = wes.set_number
         WHERE w.workout_id = ?
         ORDER BY we.exercise_order ASC, wes.set_number ASC;
     `;
@@ -120,22 +130,20 @@ app.get('/workouts/:workoutId', (req, res) => {
 app.use('/images', express.static(path.join(__dirname, 'public/images'))); 
 
 // =========================================================================
-// NEW ENDPOINT: CREATE A NEW WORKOUT (Place holder for future functionality)
+// NEW ENDPOINT: CREATE A NEW WORKOUT (No change needed here, as it uses user_id from req.body)
 // =========================================================================
 app.post('/workouts', (req, res) => {
-    // This is a placeholder. For now, it requires a user_id to assign the workout.
-    // Assuming 'testuser' (ID 1) for immediate testing based on SQL inserts.
-    const { workout_name, user_id = 1 } = req.body; 
+    // user_id is passed from the front-end (home.tsx)
+    const { workout_name, user_id } = req.body; 
 
-    if (!workout_name) {
-        return res.status(400).json({ error: "Workout name is required" });
+    if (!workout_name || !user_id) {
+        return res.status(400).json({ error: "Workout name and user_id are required" });
     }
     // Inserting the routine name. Exercises would be handled in subsequent calls.
     const query = 'INSERT INTO Workouts (user_id, workout_name) VALUES (?, ?)';
     db.query(query, [user_id, workout_name], (err, result) => {
         if (err) {
             console.error('Database query error (POST /workouts):', err.message);
-            // Unique key constraint error will show if user tries to save two workouts with the same name
             return res.status(500).json({ error: err.message });
         }
         res.json({ message: 'Workout routine created!', id: result.insertId });
@@ -166,13 +174,11 @@ app.get('/exercises', (req, res) => {
 // ADD EXERCISE TO WORKOUT
 app.post('/workouts/:workoutId/exercises', (req, res) => {
     const { workoutId } = req.params;
-    // We now expect 'setsData' to be an array: [{reps: 10, weight: 50}, ...]
     const { exercise_id, setsData } = req.body; 
 
     db.beginTransaction(err => {
         if (err) return res.status(500).json({ error: "Transaction failed" });
 
-        // 1. Get the current highest sort order
         const orderQuery = 'SELECT MAX(exercise_order) as maxOrder FROM WorkoutExercises WHERE workout_id = ?';
         
         db.query(orderQuery, [workoutId], (err, orderResult) => {
@@ -180,16 +186,13 @@ app.post('/workouts/:workoutId/exercises', (req, res) => {
             
             const nextOrder = (orderResult[0].maxOrder || 0) + 1;
 
-            // 2. Insert the main link into WorkoutExercises (default sets/reps are no longer needed here)
-            // We just need the number of sets.
             const insertExerciseQuery = `
                 INSERT INTO WorkoutExercises 
                 (workout_id, exercise_id, default_sets, default_reps, exercise_order)
                 VALUES (?, ?, ?, ?, ?)
             `;
-            // NOTE: We use the length of the setsData array for default_sets
             const totalSets = setsData.length;
-            const defaultReps = setsData[0]?.reps || 0; // Use first set's reps as default for main table
+            const defaultReps = setsData[0]?.reps || 0;
 
             db.query(insertExerciseQuery, [workoutId, exercise_id, totalSets, defaultReps, nextOrder], (err, result) => {
                 if (err) return db.rollback(() => res.status(500).json({ error: "Error inserting exercise" }));
@@ -312,10 +315,14 @@ app.put('/performance/:performanceId', (req, res) => {
 });
 
 // =========================================================================
-// CREATE PERFORMANCE RECORD (For first-time completion)
+// CREATE PERFORMANCE RECORD (For first-time completion) (MODIFIED)
 // =========================================================================
 app.post('/performance', (req, res) => {
-    const { workout_id, exercise_id, set_number, weight_kg, reps_completed, is_completed } = req.body;
+    const { user_id, workout_id, exercise_id, set_number, weight_kg, reps_completed, is_completed } = req.body;
+    
+    if (!user_id) { // <-- ADDED check for user_id
+        return res.status(400).json({ error: "user_id is required to log performance data." });
+    }
     
     // Default to current date
     const date_performed = new Date(); 
@@ -326,9 +333,9 @@ app.post('/performance', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const userId = 1; 
+    // const userId = 1; // <-- REMOVED HARDCODED USER ID
 
-    db.query(query, [userId, workout_id, exercise_id, date_performed, set_number, weight_kg, reps_completed, is_completed], (err, result) => {
+    db.query(query, [user_id, workout_id, exercise_id, date_performed, set_number, weight_kg, reps_completed, is_completed], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: err.message });
@@ -346,7 +353,6 @@ app.post('/signup', async (req, res) => {
     if (!username || !email || !password) {
         return res.status(400).json({ error: "All fields are required" });
     }
-
     try {
         // 1. Check if user exists
         const checkQuery = 'SELECT * FROM Users WHERE username = ? OR email = ?';
@@ -386,26 +392,19 @@ app.post('/login', (req, res) => {
         if (results.length === 0) {
             return res.status(401).json({ error: "Invalid username or password" });
         }
-
         const user = results[0];
-
-        // Compare the provided password with the stored hash
         const match = await bcrypt.compare(password, user.password_hash);
 
         if (!match) {
             return res.status(401).json({ error: "Invalid username or password" });
         }
-
-        // Login successful
         res.json({ message: "Login successful", userId: user.user_id, username: user.username });
     });
 });
 
 // POST Endpoint: Add a new user (Requires username and email as per schema)
 app.post('/users', (req, res) => {
-    // We assume the mobile client sends 'username' and 'email' based on your schema
     const { username, email } = req.body; 
-    
     if (!username || !email) {
         return res.status(400).json({ error: "Username and email are required" });
     }

@@ -11,12 +11,12 @@ import {
     View,
     useColorScheme
 } from 'react-native';
+import { useAuth } from '../../api/authContext';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-// YOUR IP ADDRESS
 const API_URL = "http://10.0.2.2:3000/workouts"; 
 
 interface Workout {
@@ -26,11 +26,8 @@ interface Workout {
 
 export default function HomeScreen() {
     const router = useRouter(); 
+    const { userId } = useAuth(); // Get the userId from the context
     
-    const handleBack = () => {
-        router.back();
-    };
-
     const [workouts, setWorkouts] = useState<Workout[]>([]);
     const [loading, setLoading] = useState(true);
     const colorScheme = useColorScheme();
@@ -39,8 +36,16 @@ export default function HomeScreen() {
     const [newWorkoutName, setNewWorkoutName] = useState('');
 
     const fetchWorkouts = async () => {
+        if (!userId) {
+            setWorkouts([]);
+            setLoading(false);
+            return;
+        }
+
+        const SCOPED_API_URL = `${API_URL}?user_id=${userId}`; 
+
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(SCOPED_API_URL);
             const data = await response.json();
             setWorkouts(data);
         } catch (error) {
@@ -55,7 +60,7 @@ export default function HomeScreen() {
     };
 
     const headerTitleStyle = {
-        color: colorScheme === 'light' ? '#fff' : '#FFFFFF', 
+        color: '#FFFFFF', 
     };
 
     const handleSelectWorkout = (workout: Workout) => {
@@ -66,44 +71,52 @@ export default function HomeScreen() {
     };
 
     const handleSaveNewWorkout = async () => {
-        if (!newWorkoutName.trim()) {
-            Alert.alert("Input Required", "Please enter a name for your new workout routine.");
-            return;
-        }
-        
-        setLoading(true);
-        setIsCreateModalVisible(false);
+        if (!newWorkoutName.trim()) {
+            Alert.alert("Input Required", "Please enter a name for your new workout routine.");
+            return;
+        }
+        
+        if (!userId) {
+            Alert.alert("Error", "You must be logged in to create a workout.");
+            return;
+        }
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ workout_name: newWorkoutName.trim() }),
-            });
+        setLoading(true);
+        setIsCreateModalVisible(false);
 
-            if (!response.ok) {
-                throw new Error('Failed to create workout');
-            }
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    workout_name: newWorkoutName.trim(),
+                    user_id: userId, // Send the correct user ID
+                }),
+            });
 
-            const newWorkoutData = await response.json();
-            
-            await fetchWorkouts();
-            setNewWorkoutName('');
-            Alert.alert("Success", `Routine '${newWorkoutName.trim()}' created!`);
-            
-            // 💡 FIX IS HERE: Change .workout_id to .id
-            router.push({
-                pathname: "/workout/[workout_id]",
-                params: { workout_id: newWorkoutData.id }, 
-            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create workout');
+            }
 
-        } catch (error) {
-            console.error("Error creating workout:", error);
-            Alert.alert("Error", "Could not create new workout. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
+            const newWorkoutData = await response.json();
+            
+            await fetchWorkouts();
+            setNewWorkoutName('');
+            Alert.alert("Success", `Routine '${newWorkoutName.trim()}' created!`);
+            
+            router.push({
+                pathname: "/workout/[workout_id]",
+                params: { workout_id: newWorkoutData.id }, 
+            });
+
+        } catch (error: any) {
+            console.error("Error creating workout:", error);
+            Alert.alert("Error", error.message || "Could not create new workout. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleCreateNewWorkout = () => {
         setNewWorkoutName(''); 
@@ -111,42 +124,43 @@ export default function HomeScreen() {
     };
 
     useEffect(() => {
-        fetchWorkouts();
-    }, []);
+        if (userId !== null) { 
+            fetchWorkouts();
+        }
+    }, [userId]);
 
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#173ad3ff', dark: '#111' }}
-headerImage={
-    <View style={styles.headerOverlay}>
-        <View style={styles.headerTopRow}>
-            
-            {/* 💡 1. Add Settings Button (Left Side) */}
-            <TouchableOpacity 
-                onPress={() => router.push('/settings')}
-                style={styles.aboutButton} // Reusing the same style for consistency
-            >
-                <Ionicons name="settings-outline" size={24} color="#fff" />
-            </TouchableOpacity>
+            headerBackgroundColor={{ light: '#173ad3', dark: '#111' }}
+            headerImage={
+                <View style={styles.headerOverlay}>
+                    <View style={styles.headerTopRow}>
+                        
+                        <TouchableOpacity 
+                            onPress={() => router.push('/settings')}
+                            style={styles.iconButton}
+                        >
+                            <Ionicons name="settings-outline" size={24} color="#fff" />
+                        </TouchableOpacity>
 
-            <ThemedText type="title" style={styles.headerTitle}>Workout Buddy</ThemedText>
-            
-            {/* 2. Existing About/Info Button (Right Side) */}
-            <TouchableOpacity 
-                onPress={() => router.push('/about')}
-                style={styles.aboutButton}
-            >
-                <Ionicons name="information-circle-outline" size={28} color="#fff" />
-            </TouchableOpacity>
-        </View>
-    </View>
-}>
+                        <ThemedText type="title" style={[styles.headerTitle, headerTitleStyle]}>
+                            Workout Buddy
+                        </ThemedText>
+                        
+                        <TouchableOpacity 
+                            onPress={() => router.push('/about')}
+                            style={styles.iconButton}
+                        >
+                            <Ionicons name="information-circle-outline" size={28} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            }>
             
             <ThemedView style={styles.mainContent}>
                 <ThemedText type="subtitle">Your Routines</ThemedText>
             </ThemedView>
 
-            {/* CREATE NEW WORKOUT BUTTON SECTION (Styled as a pill) */}
             <View style={styles.buttonContainer}>
                 <TouchableOpacity 
                     style={styles.createButtonPill} 
@@ -157,22 +171,21 @@ headerImage={
                 </TouchableOpacity>
             </View>
             
-            {/* SAVED WORKOUTS LIST SECTION */}
             <ThemedView style={styles.listContainer}>
                 
                 {loading ? (
-                    <ActivityIndicator size="large" color="#2a9d8f" style={{marginTop: 20}} />
+                    <ActivityIndicator size="large" color="#173ad3" style={{marginTop: 20}} />
                 ) : (
                     <View style={styles.workoutList}>
                     {Array.isArray(workouts) && workouts.length > 0 ? (
-                        workouts.map((workout, index) => (
+                        workouts.map((workout) => (
                             <TouchableOpacity 
                                 key={workout.workout_id} 
                                 style={styles.workoutCard}
                                 onPress={() => handleSelectWorkout(workout)}
                             >
                                 <View style={styles.cardIconContainer}>
-                                    <Ionicons name="fitness-outline" size={24} color="#2a9d8f" />
+                                    <Ionicons name="fitness-outline" size={24} color="#173ad3" />
                                 </View>
                                 <View style={styles.cardTextContainer}>
                                     <ThemedText style={styles.workoutNameText} type="defaultSemiBold">
@@ -187,14 +200,16 @@ headerImage={
                         ))
                     ) : (
                         <ThemedText style={styles.emptyText}>
-                            No saved workouts found. Tap 'Create New Workout' to begin!
+                            {userId === null 
+                                ? "Please log in to see your workouts."
+                                : "No saved workouts found. Tap 'Create New Workout' to begin!"
+                            }
                         </ThemedText>
                     )}
                     </View>
                 )}
             </ThemedView>
 
-            {/* --- CREATE WORKOUT MODAL --- */}
             <Modal
                 animationType="fade"
                 transparent={true}
@@ -208,7 +223,7 @@ headerImage={
                         <ThemedText style={styles.modalLabel}>Routine Name:</ThemedText>
                         <TextInput
                             style={styles.modalInput}
-                            placeholder="e.g., Upper Body Focus, Full Body Blitz"
+                            placeholder="e.g., Upper Body Focus"
                             placeholderTextColor="#999"
                             value={newWorkoutName}
                             onChangeText={setNewWorkoutName}
@@ -217,14 +232,14 @@ headerImage={
                         
                         <View style={styles.modalButtons}>
                             <TouchableOpacity 
-                                style={[styles.modalBtn, styles.modalBtnCancel]} 
+                                style={[styles.modalBtn, styles.modalBtnCancel]}
                                 onPress={() => setIsCreateModalVisible(false)}
                             >
                                 <ThemedText style={styles.modalBtnTextCancel}>Cancel</ThemedText>
                             </TouchableOpacity>
                             
                             <TouchableOpacity 
-                                style={[styles.modalBtn, styles.modalBtnCreate]} 
+                                style={[styles.modalBtn, styles.modalBtnCreate]}
                                 onPress={handleSaveNewWorkout}
                             >
                                 <ThemedText style={styles.modalBtnTextCreate}>Create</ThemedText>
@@ -236,6 +251,8 @@ headerImage={
         </ParallaxScrollView>
     );
 }
+
+// NOTE: Styles included here for completeness, as they are part of the file.
 const styles = StyleSheet.create({
     mainContent: {
         paddingHorizontal: 16,
@@ -245,29 +262,21 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         paddingHorizontal: 20,
-        backgroundColor: 'rgba(0,0,0,0.3)' 
+        backgroundColor: 'rgba(0,0,0,0.2)' 
     },
     headerTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        position: 'absolute',
-        top: '30%',
-        left: 20,
-        right: 20,
-        zIndex: 1
+        marginTop: 40, 
     },
     headerTitle: {
         fontSize: 28,
         fontWeight: 'bold',
         color: '#fff', 
-        //position: 'absolute',
-        left: 20,
-        top: '30%',
-        zIndex: 1
     },
-    aboutButton: {
-        padding: 5,
+    iconButton: {
+        padding: 8,
         backgroundColor: 'rgba(255,255,255,0.2)',
         borderRadius: 20,
     },
@@ -277,14 +286,14 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     createButtonPill: {
-        backgroundColor: '#173ad3ff',
+        backgroundColor: '#173ad3',
         paddingHorizontal: 20,
         paddingVertical: 14,
         borderRadius: 30,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#2a9d8f',
+        shadowColor: '#173ad3',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 5,
@@ -310,7 +319,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#f0f0f0',
-        
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -319,9 +327,9 @@ const styles = StyleSheet.create({
     },
     cardIconContainer: {
         marginRight: 15,
-        padding: 8,
-        borderRadius: 8,
-        backgroundColor: '#e6f4f2',
+        padding: 10,
+        borderRadius: 10,
+        backgroundColor: '#e3f2fd', 
     },
     cardTextContainer: {
         flex: 1,
@@ -336,13 +344,11 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     emptyText: {
-        color: '#e76f51',
+        color: '#173ad3',
         textAlign: 'center',
         marginTop: 20,
         paddingHorizontal: 20,
     },
-    
-    // --- MODAL STYLES ---
     modalOverlay: {
         flex: 1,
         justifyContent: 'center',
@@ -395,7 +401,7 @@ const styles = StyleSheet.create({
         borderColor: '#ddd',
     },
     modalBtnCreate: {
-        backgroundColor: '#173ad3ff',
+        backgroundColor: '#173ad3',
     },
     modalBtnTextCancel: {
         color: '#555',
