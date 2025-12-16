@@ -136,33 +136,101 @@ export default function LoginScreen() {
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switchContainer}>
-                    <ThemedText style={styles.switchText}>
-                        {isLogin ? "Don't have an account? " : "Already have an account? "}
-                        <ThemedText style={styles.switchTextBold}>
-                            {isLogin ? "Sign Up" : "Log In"}
-                        </ThemedText>
-                    </ThemedText>
-                </TouchableOpacity>
+<TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switchContainer}>
+    <ThemedText style={styles.switchText}>
+        {isLogin ? "Don't have an account? " : "Already have an account? "}
+        <ThemedText style={styles.switchTextBold}>
+            {isLogin ? "Sign Up" : "Log In"}
+        </ThemedText>
+    </ThemedText>
+</TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
     );
 }
-
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#173ad3ff', justifyContent: 'center' },
-    logoSection: { alignItems: 'center', marginBottom: 40 },
-    logoContainer: { width: 100, height: 100, backgroundColor: '#fff', borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 15, elevation: 8 },
-    logo: { width: 60, height: 60 },
-    title: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
-    subtitle: { color: 'rgba(255,255,255,0.9)', marginTop: 5, fontSize: 16 },
-    formSection: { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 20, padding: 25, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5 },
-    inputGroup: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 20, paddingBottom: 5 },
-    icon: { marginRight: 10 },
-    input: { flex: 1, fontSize: 16, color: '#333', paddingVertical: 10 },
-    authButton: { backgroundColor: '#173ad3ff', paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-    authButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
-    switchContainer: { marginTop: 20, alignItems: 'center' },
-    switchText: { color: '#666' },
-    switchTextBold: { color: '#2a9d8f', fontWeight: 'bold' },
+    container: { 
+        flex: 1, 
+        backgroundColor: '#173ad3ff', 
+        justifyContent: 'center' 
+    },
+    logoSection: { 
+        alignItems: 'center', 
+        marginBottom: 40 
+    },
+    logoContainer: { 
+        width: 100, 
+        height: 100, 
+        backgroundColor: '#fff', 
+        borderRadius: 25, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginBottom: 15, 
+        elevation: 8 
+    },
+    logo: { 
+        width: 60, 
+        height: 60 
+    },
+    title: { 
+        fontSize: 32, 
+        fontWeight: 'bold', 
+        color: '#fff' 
+    },
+    subtitle: { 
+        color: 'rgba(255,255,255,0.9)', 
+        marginTop: 5, 
+        fontSize: 16 
+    },
+    formSection: { 
+        backgroundColor: '#fff', 
+        marginHorizontal: 20, 
+        borderRadius: 20, 
+        padding: 25, 
+        elevation: 10, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 5 
+    },
+    inputGroup: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        borderBottomWidth: 1, 
+        borderBottomColor: '#eee', 
+        marginBottom: 20, 
+        paddingBottom: 5 
+    },
+    icon: { 
+        marginRight: 10 
+    },
+    input: { 
+        flex: 1, 
+        fontSize: 16, 
+        color: '#333', 
+        paddingVertical: 10 
+    },
+    authButton: { 
+        backgroundColor: '#173ad3ff', 
+        paddingVertical: 15, 
+        borderRadius: 12, 
+        alignItems: 'center', 
+        marginTop: 10 
+    },
+    authButtonText: { 
+        color: '#fff', 
+        fontWeight: 'bold', 
+        fontSize: 18 
+    },
+    switchContainer: { 
+        marginTop: 20, 
+        alignItems: 'center' 
+    },
+    switchText: { 
+        color: '#666' 
+    },
+    switchTextBold: { 
+        color: '#2a9d8f', 
+        fontWeight: 'bold' 
+    },
 });

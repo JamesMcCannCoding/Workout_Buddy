@@ -3,14 +3,13 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, Dimensions, Image, StyleSheet, View } from 'react-native';
 
-// Get screen dimensions to help with layout
+// Get screen dimensions
 const { width } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Set a timer for the splash screen duration (e.g., 2.5 seconds)
     const timer = setTimeout(() => {
 
       router.replace('/login'); 
@@ -24,7 +23,6 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        {/* LOGO IMAGE */}
         <View style={styles.logoContainer}>
             <Image 
                 source={require('@/assets/images/logo.png')} 
@@ -32,15 +30,9 @@ export default function SplashScreen() {
                 resizeMode="contain"
             />
         </View>
-
-        {/* APP TITLE */}
         <ThemedText type="title" style={styles.title}>Workout Buddy</ThemedText>
-        
-        {/* TAGLINE */}
         <ThemedText style={styles.subtitle}>Track. Progress. Achieve.</ThemedText>
       </View>
-
-      {/* LOADING INDICATOR AT BOTTOM */}
       <View style={styles.footer}>
         <ActivityIndicator size="small" color="#fff" />
         <ThemedText style={styles.footerText}>Loading your gains...</ThemedText>

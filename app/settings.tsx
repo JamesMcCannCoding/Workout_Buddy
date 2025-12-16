@@ -13,15 +13,11 @@ import {
 
 export default function SettingsScreen() {
     const router = useRouter();
-
-    // Mock State for settings
     const [isDarkTheme, setIsDarkTheme] = useState(false);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const [useMetricSystem, setUseMetricSystem] = useState(true); // True = kg, False = lbs
+    const [useMetricSystem, setUseMetricSystem] = useState(true);
 
-    // Function to handle navigating back
     const handleBack = () => {
-        // router.back() is the standard way to return to the previous screen in the stack (Home)
         router.back();
     };
 
@@ -35,7 +31,6 @@ export default function SettingsScreen() {
                     text: "Log Out", 
                     style: "destructive", 
                     onPress: () => {
-                        // In a real app, clear your Auth Token/Context here
                         router.replace('/login');
                     }
                 }
@@ -47,7 +42,6 @@ export default function SettingsScreen() {
         router.push('/about');
     };
 
-    // Reusable Setting Row Component
     const SettingRow = ({ label, icon, value, onToggle }: any) => (
         <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
@@ -73,7 +67,6 @@ export default function SettingsScreen() {
                     headerTintColor: '#fff', 
                     headerStyle: { backgroundColor: '#173ad3ff' },
                     
-                    // 💡 IMPLEMENT THE CUSTOM BACK BUTTON HERE
                     headerLeft: () => (
                         <TouchableOpacity onPress={handleBack} style={{ padding: 10 }}>
                             <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -84,7 +77,6 @@ export default function SettingsScreen() {
             
             <ScrollView style={styles.container}>
                 
-                {/* 1. PROFILE SECTION */}
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <Ionicons name="person" size={40} color="#fff" />
@@ -96,7 +88,6 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* 2. PREFERENCES */}
                 <View style={styles.section}>
                     <ThemedText style={styles.sectionHeader}>PREFERENCES</ThemedText>
                     <View style={styles.card}>
@@ -123,7 +114,6 @@ export default function SettingsScreen() {
                     </View>
                 </View>
 
-                {/* 3. SUPPORT */}
                 <View style={styles.section}>
                     <ThemedText style={styles.sectionHeader}>SUPPORT</ThemedText>
                     <View style={styles.card}>
@@ -151,26 +141,22 @@ export default function SettingsScreen() {
                     </View>
                 </View>
 
-                {/* 4. LOGOUT */}
                 <View style={styles.section}>
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                         <ThemedText style={styles.logoutText}>Log Out</ThemedText>
                     </TouchableOpacity>
                     <ThemedText style={styles.versionText}>Version 1.0.0</ThemedText>
                 </View>
-
             </ScrollView>
         </>
     );
 }
 
 const styles = StyleSheet.create({
-// ... (The rest of your styles are unchanged)
     container: {
         flex: 1,
         backgroundColor: '#f5f7fa',
     },
-    // Profile Header
     profileHeader: {
         backgroundColor: '#fff',
         alignItems: 'center',
@@ -215,7 +201,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#555',
     },
-
     section: {
         marginBottom: 25,
         paddingHorizontal: 16,
@@ -240,7 +225,6 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
         elevation: 2,
     },
-    
     settingRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -277,7 +261,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#f5f7fa',
         marginLeft: 60,
     },
-
     logoutButton: {
         backgroundColor: '#fff',
         borderWidth: 1,

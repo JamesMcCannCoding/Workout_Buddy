@@ -401,7 +401,6 @@ export default function WorkoutDetailScreen() {
                 title: workout?.workout_name || 'Loading Workout...',
                 headerShown: true, 
             }} />
-            
             <ParallaxScrollView
                 headerBackgroundColor={{ light: '#173ad3ff', dark: '#111' }}
                 headerImage={
@@ -412,7 +411,6 @@ export default function WorkoutDetailScreen() {
                         </ThemedText>
                     </View>
                 }>
-                
                 <View style={detailStyles.mainContent}>
                     <View style={detailStyles.headerActionRow}>
                         <ThemedText type="subtitle">Routine</ThemedText>
@@ -432,7 +430,6 @@ export default function WorkoutDetailScreen() {
                             />
                         ))}
                     </View>
-                    
                     <View style={{height: 100}} /> 
                 </View>
 

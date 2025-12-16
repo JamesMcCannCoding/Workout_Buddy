@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-// Static list of libraries used in this project
+// list of libraries used in this project
 const LICENSES = [
     { name: "React Native", license: "MIT", url: "https://reactnative.dev/" },
     { name: "Expo", license: "MIT", url: "https://expo.dev/" },
@@ -21,7 +21,6 @@ export default function AboutScreen() {
             
             <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
                 
-                {/* 1. APP DESCRIPTION SECTION */}
                 <View style={styles.sectionCard}>
                     <View style={styles.logoRow}>
                         <Ionicons name="barbell" size={40} color="#2a9d8f" />
@@ -37,7 +36,6 @@ export default function AboutScreen() {
                     <ThemedText style={styles.version}>Version 1.0.0</ThemedText>
                 </View>
 
-                {/* 2. OPEN SOURCE LICENSES SECTION */}
                 <ThemedText type="subtitle" style={styles.sectionTitle}>Open Source Licenses</ThemedText>
                 <ThemedText style={styles.subtitle}>
                     This application uses the following open source software:
@@ -59,11 +57,9 @@ export default function AboutScreen() {
                     ))}
                 </View>
 
-                {/* FOOTER */}
                 <View style={styles.footer}>
                     <ThemedText style={styles.footerText}>© 2025 Workout Buddy Devs</ThemedText>
                 </View>
-
             </ScrollView>
         </>
     );

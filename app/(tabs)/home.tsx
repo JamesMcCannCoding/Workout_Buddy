@@ -1,3 +1,6 @@
+import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -13,10 +16,6 @@ import {
 } from 'react-native';
 import { useAuth } from '../../api/authContext';
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-
 // Base API URL for consistency
 const API_URL = "http://10.0.2.2:3000/workouts"; 
 
@@ -31,10 +30,8 @@ export default function HomeScreen() {
     const [workouts, setWorkouts] = useState<Workout[]>([]);
     const [loading, setLoading] = useState(true); 
     const colorScheme = useColorScheme();
-
     const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
     const [newWorkoutName, setNewWorkoutName] = useState('');
-
     const fetchWorkouts = async () => {
         if (!userId) {
             setWorkouts([]);
@@ -65,7 +62,6 @@ export default function HomeScreen() {
             setLoading(false);
         }
     };
-
     const headerTitleStyle = {
         color: '#FFFFFF', 
     };
@@ -122,7 +118,6 @@ export default function HomeScreen() {
             setLoading(false);
         }
     };
-
     const handleCreateNewWorkout = () => {
         if (!userId) {
              Alert.alert("Authentication Required", "Please log in to create a new workout routine.");
@@ -167,11 +162,9 @@ export default function HomeScreen() {
                     </View>
                 </View>
             }>
-            
             <ThemedView style={styles.mainContent}>
                 <ThemedText type="subtitle">Your Routines</ThemedText>
             </ThemedView>
-
             <View style={styles.buttonContainer}>
                 <TouchableOpacity 
                     style={styles.createButtonPill} 
@@ -181,9 +174,7 @@ export default function HomeScreen() {
                     <ThemedText style={styles.createButtonText}>Create New Workout</ThemedText>
                 </TouchableOpacity>
             </View>
-            
             <ThemedView style={styles.listContainer}>
-                
                 {loading ? (
                     <ActivityIndicator size="large" color="#173ad3" style={{marginTop: 20}} />
                 ) : (
@@ -220,7 +211,7 @@ export default function HomeScreen() {
                     </View>
                 )}
             </ThemedView>
-
+                
             <Modal
                 animationType="fade"
                 transparent={true}
@@ -262,8 +253,7 @@ export default function HomeScreen() {
         </ParallaxScrollView>
     );
 }
-
-// Styles remain the same
+// Styles
 const styles = StyleSheet.create({
     mainContent: {
         paddingHorizontal: 16,

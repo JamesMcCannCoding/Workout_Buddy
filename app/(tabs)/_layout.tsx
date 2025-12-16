@@ -1,5 +1,5 @@
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol'; // Using your custom component
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs } from 'expo-router';
@@ -17,29 +17,24 @@ export default function TabLayout() {
           headerShown: false,
           tabBarButton: HapticTab,
         }}>
-        
-        {/* HOME/ROUTINES TAB */}
+
         <Tabs.Screen
-          name="home" // Assuming you fixed the name from 'index' to 'home'
+          name="home"
           options={{
-            title: 'Routines', // Changed label for clarity
-            // CHANGED ICON NAME
+            title: 'Routines',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
           }}
         />
-        
-        {/* WORKOUT/TRACKER TAB */}
-        <Tabs.Screen
+
+        <Tabs.Screen
           name="workout" 
           options={{
-            title: 'Tracker', // Changed label for clarity
-            // CHANGED ICON NAME
+            title: 'Tracker',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="stopwatch" color={color} />,
           }}
         />
-        
-        {/* SETTINGS/PROFILE TAB (No change needed) */}
-        <Tabs.Screen
+
+        <Tabs.Screen
           name="settings" 
           options={{
             title: 'Profile',

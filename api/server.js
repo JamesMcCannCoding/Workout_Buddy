@@ -16,22 +16,16 @@ const db = mysql.createConnection({
     password: 'app_user',
     database: 'workoutdb'
 });
-
-// =========================================================================
-// NEW ENDPOINT: FETCH ALL SAVED WORKOUTS FOR THE HOME SCREEN (MODIFIED)
-// =========================================================================
+// ============================================
+// FETCH ALL SAVED WORKOUTS FOR THE HOME SCREEN
+// ============================================
 app.get('/workouts', (req, res) => {
-    // 1. Extract the user_id from the query parameters
     const { user_id } = req.query;
 
     if (!user_id) {
-        // If user_id is missing (unauthenticated access), return an empty list or an error.
-        // Returning an empty list is safer for the front-end.
         console.warn('GET /workouts attempted without user_id query parameter.');
         return res.json([]); 
     }
-
-    // 2. Modify the query to filter by the user_id
     const query = `
         SELECT 
             w.workout_id, 
@@ -41,8 +35,6 @@ app.get('/workouts', (req, res) => {
         WHERE
             w.user_id = ?;
     `;
-    
-    // 3. Pass the user_id to the query
     db.query(query, [user_id], (err, results) => {
         if (err) {
             console.error('Database query error (GET /workouts):', err.message);
@@ -52,9 +44,9 @@ app.get('/workouts', (req, res) => {
         res.json(results);
     });
 });
-// =========================================================================
-// FETCH FULL WORKOUT DETAILS BY ID (Corrected SQL)
-// =========================================================================
+// =================================
+// FETCH FULL WORKOUT DETAILS BY ID
+// =================================
 app.get('/workouts/:workoutId', (req, res) => {
     const { workoutId } = req.params;
 
@@ -83,13 +75,11 @@ app.get('/workouts/:workoutId', (req, res) => {
         WHERE w.workout_id = ?
         ORDER BY we.exercise_order ASC, wes.set_number ASC;
     `;
-
     db.query(query, [workoutId], (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: err.message });
         }
-
         const workoutData = {
             workout_name: results[0]?.workout_name || 'Workout',
             exercises: []
@@ -123,23 +113,20 @@ app.get('/workouts/:workoutId', (req, res) => {
         res.json(workoutData);
     });
 });
-
-// ==========================================================
-// 1. ADD STATIC FILE SERVING FOR IMAGES
-// ==========================================================
+// ===================================
+// ADD STATIC FILE SERVING FOR IMAGES
+// ===================================
 app.use('/images', express.static(path.join(__dirname, 'public/images'))); 
 
-// =========================================================================
-// NEW ENDPOINT: CREATE A NEW WORKOUT (No change needed here, as it uses user_id from req.body)
-// =========================================================================
+// =====================
+// CREATE A NEW WORKOUT
+// =====================
 app.post('/workouts', (req, res) => {
-    // user_id is passed from the front-end (home.tsx)
     const { workout_name, user_id } = req.body; 
 
     if (!workout_name || !user_id) {
         return res.status(400).json({ error: "Workout name and user_id are required" });
     }
-    // Inserting the routine name. Exercises would be handled in subsequent calls.
     const query = 'INSERT INTO Workouts (user_id, workout_name) VALUES (?, ?)';
     db.query(query, [user_id, workout_name], (err, result) => {
         if (err) {
@@ -149,10 +136,9 @@ app.post('/workouts', (req, res) => {
         res.json({ message: 'Workout routine created!', id: result.insertId });
     });
 });
-
-// =========================================================================
-// ORIGINAL USER ENDPOINTS (Corrected for schema consistency)
-// =========================================================================
+// =========================
+// ORIGINAL USER ENDPOINTS
+// =========================
 app.get('/users', (req, res) => {
     db.query('SELECT * FROM Users', (err, results) => {
         if (err) {
@@ -161,8 +147,9 @@ app.get('/users', (req, res) => {
         res.json(results);
     });
 });
-
-// FETCH ALL AVAILABLE EXERCISES (For the dropdown list)
+// ==============================
+// FETCH ALL AVAILABLE EXERCISES
+// ==============================
 app.get('/exercises', (req, res) => {
     const query = 'SELECT exercise_id, exercise_name FROM Exercises ORDER BY exercise_name ASC';
     db.query(query, (err, results) => {
@@ -225,16 +212,15 @@ app.post('/workouts/:workoutId/exercises', (req, res) => {
     });
 });
 
-// =========================================================================
-// CORRECTED DELETE ENDPOINT: REMOVE EXERCISE FROM WORKOUT
-// =========================================================================
+// ===============================================
+// DELETE ENDPOINT: REMOVE EXERCISE FROM WORKOUT
+// ===============================================
 app.delete('/workouts/:workoutId/exercises/:workoutExerciseId', (req, res) => {
     const { workoutExerciseId } = req.params;
 
     if (!workoutExerciseId) {
         return res.status(400).json({ error: 'Workout exercise ID is missing.' });
     }
-
     db.beginTransaction(err => {
         if (err) {
             console.error("Transaction failed to start:", err);
@@ -282,10 +268,9 @@ app.delete('/workouts/:workoutId/exercises/:workoutExerciseId', (req, res) => {
         });
     });
 });
-
-// =========================================================================
-// NEW ENDPOINT: UPDATE SET COMPLETION STATUS
-// =========================================================================
+// ===============================
+// UPDATE SET COMPLETION STATUS
+// ===============================
 app.put('/performance/:performanceId', (req, res) => {
     const { performanceId } = req.params;
     const { is_completed } = req.body; 
@@ -293,7 +278,6 @@ app.put('/performance/:performanceId', (req, res) => {
     if (is_completed === undefined) {
         return res.status(400).json({ error: "is_completed status is required." });
     }
-
     const completionValue = is_completed ? 1 : 0;
     const query = 'UPDATE Performancedata SET is_completed = ? WHERE performance_id = ?';
 
@@ -302,11 +286,9 @@ app.put('/performance/:performanceId', (req, res) => {
             console.error('Database query error (PUT /performance):', err.message);
             return res.status(500).json({ error: err.message });
         }
-
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Performance record not found.' });
         }
-
         res.json({ 
             message: `Performance record ${performanceId} updated.`,
             is_completed: is_completed 
@@ -314,16 +296,15 @@ app.put('/performance/:performanceId', (req, res) => {
     });
 });
 
-// =========================================================================
-// CREATE PERFORMANCE RECORD (For first-time completion) (MODIFIED)
-// =========================================================================
+// ============================
+// CREATE PERFORMANCE RECORD 
+// ============================
 app.post('/performance', (req, res) => {
     const { user_id, workout_id, exercise_id, set_number, weight_kg, reps_completed, is_completed } = req.body;
     
-    if (!user_id) { // <-- ADDED check for user_id
+    if (!user_id) {
         return res.status(400).json({ error: "user_id is required to log performance data." });
     }
-    
     // Default to current date
     const date_performed = new Date(); 
 
@@ -333,8 +314,6 @@ app.post('/performance', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    // const userId = 1; // <-- REMOVED HARDCODED USER ID
-
     db.query(query, [user_id, workout_id, exercise_id, date_performed, set_number, weight_kg, reps_completed, is_completed], (err, result) => {
         if (err) {
             console.error(err);
@@ -343,10 +322,9 @@ app.post('/performance', (req, res) => {
         res.json({ message: 'Performance created', performance_id: result.insertId });
     });
 });
-
-// =========================================================================
+// ==========================
 // AUTHENTICATION: SIGN UP
-// =========================================================================
+// ==========================
 app.post('/signup', async (req, res) => {
     const { username, email, password } = req.body;
 
@@ -354,16 +332,16 @@ app.post('/signup', async (req, res) => {
         return res.status(400).json({ error: "All fields are required" });
     }
     try {
-        // 1. Check if user exists
+        // Checks if user exists
         const checkQuery = 'SELECT * FROM Users WHERE username = ? OR email = ?';
         db.query(checkQuery, [username, email], async (err, results) => {
             if (err) return res.status(500).json({ error: err.message });
             if (results.length > 0) return res.status(409).json({ error: "User already exists" });
 
-            // 2. Hash the password
+            // Hash password
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // 3. Insert new user
+            // Insert new user
             const insertQuery = 'INSERT INTO Users (username, email, password_hash) VALUES (?, ?, ?)';
             db.query(insertQuery, [username, email, hashedPassword], (err, result) => {
                 if (err) return res.status(500).json({ error: err.message });
@@ -374,17 +352,15 @@ app.post('/signup', async (req, res) => {
         res.status(500).json({ error: "Server error during registration" });
     }
 });
-
-// =========================================================================
+// ========================
 // AUTHENTICATION: LOGIN
-// =========================================================================
+// ========================
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
         return res.status(400).json({ error: "Username and password required" });
     }
-
     const query = 'SELECT * FROM Users WHERE username = ?';
     db.query(query, [username], async (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -401,8 +377,9 @@ app.post('/login', (req, res) => {
         res.json({ message: "Login successful", userId: user.user_id, username: user.username });
     });
 });
-
-// POST Endpoint: Add a new user (Requires username and email as per schema)
+// ==============================
+// POST Endpoint: Add a new user
+// ==============================
 app.post('/users', (req, res) => {
     const { username, email } = req.body; 
     if (!username || !email) {
@@ -416,7 +393,6 @@ app.post('/users', (req, res) => {
         res.json({ message: 'User added!', id: result.insertId });
     });
 });
-
 // Listen on all network interfaces (0.0.0.0) so your phone can reach it
 app.listen(3000, '0.0.0.0', () => {
     console.log('Server running on port 3000. Accessing DB: workoutdb');
