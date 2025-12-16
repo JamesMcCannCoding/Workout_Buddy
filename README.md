@@ -4,13 +4,13 @@
 
 ---
 
-## 📝 Overview
+## Overview
 
 Workout Buddy is a mobile application built using **Expo and React Native** designed to help users efficiently create, track, and manage their daily workout routines. It provides a clean, user-friendly interface for logging exercise sessions and tracking progress toward fitness goals.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 | Feature Category | Description |
 | :--- | :--- |
@@ -21,7 +21,7 @@ Workout Buddy is a mobile application built using **Expo and React Native** desi
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 * **Framework:** React Native (with Expo)
 * **Language:** TypeScript / JavaScript (TSX/JSX)
@@ -32,7 +32,7 @@ Workout Buddy is a mobile application built using **Expo and React Native** desi
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
