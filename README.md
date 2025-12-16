@@ -82,5 +82,6 @@ For a Physical Android Device, you must replace 10.0.2.2 with your host machine'
      npx expo start
 12. In this terminal, press 'a' to launch the Android emulator.
 13. Open your Android emulator or IOS device now. Keep tyring to launch the Android connection from expo to your emulator it should eventually work.
+14. Finally, you should have both Node and Expo running at the same time in order to use the app correctly. 
     
 
