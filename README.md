@@ -1,6 +1,6 @@
-# 💪 Workout Buddy App
+# Workout Buddy - A fitness tracking application
 
-> An intuitive mobile application to help you efficiently create, track, and manage your daily fitness routines.
+> A mobile application to help you efficiently create, track, and manage your daily fitness routines.
 
 ---
 
@@ -24,11 +24,11 @@ Workout Buddy is a mobile application built using **Expo and React Native** desi
 ## Technology Stack
 
 * **Framework:** React Native (with Expo)
-* **Language:** TypeScript / JavaScript (TSX/JSX)
+* **Language:** TypeScript / JavaScript
 * **Navigation:** Expo Router
 * **State:** React Context API (for `AuthContext`)
 * **Styling:** React Native `StyleSheet`
-* **Backend:** Custom server running locally (e.g., Node/Express, Python/Flask, etc.)
+* **Backend:** Custom server running locally utilising a MySQL Database.
 
 ---
 
