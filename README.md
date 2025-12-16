@@ -66,13 +66,17 @@ For a Physical Android Device, you must replace 10.0.2.2 with your host machine'
 
 
 ## Running the App
-Start the Expo development server:
 
-npx expo start
-Launch on your device:
+1. Download the application file from Github, extract it and save it somewhere.
+2. Open command terminal and navigate to the root folder of the project.
+3. Once there you will need to install Node package manager. Enter this command:
+     npm install
+4. Once Node is installed you will need to locally host the MySQL Database. This can be done through XAMPP, you will need to run both the Apache and MySQL services. Navigate to the PHP/Myadmin page.
+5. Once inside your PHP MyAdmin you will need to create a new database called "workoutdb". This is where you will import your workout.sql file that comes with this app. It can be found in the root directory of the app.
+6. Once the database is running, you will need to open another terminal and again navigate to the root directory of this app. Once there run the following command:
+     node server.js
+7. Keep this window open and running and do not close. Back over in the first terminal you will need to start your expo client to run the app. This can be done by running this command:
+     npx expo start
+8. In this terminal, press 'a' to launch the Android emulator.
+9. Open your Android emulator or IOS device now. Keep tyring to launch the 
 
-Press i for iOS Simulator.
-
-Press a for Android Emulator.
-
-Scan the QR code with the Expo Go app for a physical device.
