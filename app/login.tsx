@@ -52,11 +52,9 @@ export default function LoginScreen() {
                 throw new Error(data.error || "Authentication failed");
             }
 
-            // SUCCESS: Set the global User ID before navigating
             setUserId(data.userId); 
-            
-            // FIX: Navigate to the correct path, which is the tabs group
-            router.replace('./(tabs)'); 
+
+            router.replace('/(tabs)/home'); 
 
         } catch (error: any) {
             Alert.alert("Error", error.message);
