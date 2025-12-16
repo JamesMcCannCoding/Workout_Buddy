@@ -73,10 +73,14 @@ For a Physical Android Device, you must replace 10.0.2.2 with your host machine'
      npm install
 4. Once Node is installed you will need to locally host the MySQL Database. This can be done through XAMPP, you will need to run both the Apache and MySQL services. Navigate to the PHP/Myadmin page.
 5. Once inside your PHP MyAdmin you will need to create a new database called "workoutdb". This is where you will import your workout.sql file that comes with this app. It can be found in the root directory of the app.
-6. Once the database is running, you will need to open another terminal and again navigate to the root directory of this app. Once there run the following command:
-     node server.js
-7. Keep this window open and running and do not close. Back over in the first terminal you will need to start your expo client to run the app. This can be done by running this command:
+6. You will then need to navigate to the priveledges tab in your workoutdb in PHP MyAdmin and create a new user. This user must have these exact credentials: username: 'app_user', password: 'app_user' and grant them all the permissions. You are now done with PHP MyAdmin.
+7. Once the database is running, you will need to open another terminal and again navigate to the root directory of this app. Once there navigate to the 'api' folder. Then run the following command:
+     npm install express mysql cors
+9. Now launch node by entering this command:
+    node server.js
+11. Keep this window open and running and do not close. Back over in the first terminal you will need to start your expo client to run the app. This can be done by running this command:
      npx expo start
-8. In this terminal, press 'a' to launch the Android emulator.
-9. Open your Android emulator or IOS device now. Keep tyring to launch the 
+12. In this terminal, press 'a' to launch the Android emulator.
+13. Open your Android emulator or IOS device now. Keep tyring to launch the Android connection from expo to your emulator it should eventually work.
+    
 
