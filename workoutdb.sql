@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 11, 2025 at 07:26 AM
+-- Generation Time: Dec 16, 2025 at 06:24 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -107,7 +107,10 @@ INSERT INTO `performancedata` (`performance_id`, `user_id`, `workout_id`, `exerc
 (13, 1, 1, 10, '2025-12-11', 1, 30.00, 12, 1),
 (14, 1, 1, 10, '2025-12-11', 2, 30.00, 12, 1),
 (15, 1, 1, 10, '2025-12-11', 3, 30.00, 12, 1),
-(16, 1, 1, 10, '2025-12-11', 4, 30.00, 12, 1);
+(16, 1, 1, 10, '2025-12-11', 4, 30.00, 12, 1),
+(19, 1, 3, 3, '2025-12-15', 1, 120.00, 10, 0),
+(20, 1, 3, 3, '2025-12-15', 2, 120.00, 10, 0),
+(21, 1, 3, 3, '2025-12-15', 3, 120.00, 10, 0);
 
 -- --------------------------------------------------------
 
@@ -119,15 +122,18 @@ CREATE TABLE `users` (
   `user_id` int(11) NOT NULL,
   `username` varchar(50) NOT NULL,
   `email` varchar(100) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `password_hash` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `username`, `email`, `created_at`) VALUES
-(1, 'testuser', 'test@example.com', '2025-12-05 05:31:52');
+INSERT INTO `users` (`user_id`, `username`, `email`, `created_at`, `password_hash`) VALUES
+(1, 'testuser', 'test@example.com', '2025-12-05 05:31:52', ''),
+(3, 'jmccann', 'mccjam16@gmail.com', '2025-12-12 02:47:43', '$2b$10$rGozLHePfmmNOLA3gqHLnePTqkWWI.o4utfKS948NknrEpOK347K.'),
+(4, 'test', 'test@gmail.com', '2025-12-15 04:14:16', '$2b$10$5KEPfSqxrg6mNs1W9frGwuu4XbDHDs/0Cd1jWHvmw3kaAy6yub0A.');
 
 -- --------------------------------------------------------
 
@@ -168,7 +174,11 @@ INSERT INTO `workoutexercises` (`workout_exercise_id`, `workout_id`, `exercise_i
 (35, 3, 26, 9, 4, 12),
 (36, 4, 28, 4, 4, 24),
 (37, 4, 22, 5, 4, 12),
-(38, 4, 33, 6, 4, 12);
+(38, 4, 33, 6, 4, 12),
+(39, 7, 29, 1, 4, 10),
+(40, 10, 29, 1, 4, 10),
+(41, 11, 1, 1, 3, 10),
+(42, 12, 29, 1, 3, 10);
 
 -- --------------------------------------------------------
 
@@ -268,7 +278,21 @@ INSERT INTO `workoutexercisesets` (`set_id`, `workout_exercise_id`, `set_number`
 (84, 38, 1, 12, 45.00),
 (85, 38, 2, 12, 50.00),
 (86, 38, 3, 12, 50.00),
-(87, 38, 4, 12, 45.00);
+(87, 38, 4, 12, 45.00),
+(88, 39, 1, 10, 0.00),
+(89, 39, 2, 10, 0.00),
+(90, 39, 3, 10, 0.00),
+(91, 39, 4, 10, 0.00),
+(92, 40, 1, 10, 0.00),
+(93, 40, 2, 10, 0.00),
+(94, 40, 3, 10, 0.00),
+(95, 40, 4, 10, 0.00),
+(96, 41, 1, 10, 0.00),
+(97, 41, 2, 10, 0.00),
+(98, 41, 3, 10, 0.00),
+(99, 42, 1, 10, 0.00),
+(100, 42, 2, 10, 0.00),
+(101, 42, 3, 10, 0.00);
 
 -- --------------------------------------------------------
 
@@ -292,7 +316,11 @@ INSERT INTO `workouts` (`workout_id`, `user_id`, `workout_name`, `created_at`) V
 (3, 1, 'Back Day', '2025-12-10 04:00:40'),
 (4, 1, 'Leg Day', '2025-12-11 05:01:30'),
 (5, 1, 'Shoulders & Abs', '2025-12-11 05:02:56'),
-(6, 1, 'Tricep & Bicep Day', '2025-12-11 05:09:09');
+(6, 1, 'Tricep & Bicep Day', '2025-12-11 05:09:09'),
+(7, 1, 'TEST', '2025-12-15 04:14:41'),
+(10, 3, 'Test', '2025-12-16 01:59:58'),
+(11, 3, 'Chest Day', '2025-12-16 02:00:56'),
+(12, 4, 'Test1', '2025-12-16 02:01:36');
 
 --
 -- Indexes for dumped tables
@@ -359,31 +387,31 @@ ALTER TABLE `exercises`
 -- AUTO_INCREMENT for table `performancedata`
 --
 ALTER TABLE `performancedata`
-  MODIFY `performance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `performance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `workoutexercises`
 --
 ALTER TABLE `workoutexercises`
-  MODIFY `workout_exercise_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `workout_exercise_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- AUTO_INCREMENT for table `workoutexercisesets`
 --
 ALTER TABLE `workoutexercisesets`
-  MODIFY `set_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
+  MODIFY `set_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=102;
 
 --
 -- AUTO_INCREMENT for table `workouts`
 --
 ALTER TABLE `workouts`
-  MODIFY `workout_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `workout_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- Constraints for dumped tables
